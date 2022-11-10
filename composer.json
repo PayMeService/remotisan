@@ -38,11 +38,7 @@
         "post-autoload-dump": "@php ./vendor/bin/testbench package:discover --ansi"
     },
     "config": {
-        "sort-packages": true,
-        "allow-plugins": {
-            "pestphp/pest-plugin": true,
-            "phpstan/extension-installer": true
-        }
+        "sort-packages": true
     },
     "extra": {
         "laravel": {
