@@ -1,11 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: omer
- * Date: 04/11/2022
- * Time: 21:10
- */
-
 namespace PayMe\Remotisan\Http\Controllers;
 
 use Illuminate\Http\Request;
@@ -13,7 +6,6 @@ use Illuminate\Routing\Controller;
 use PayMe\Remotisan\CommandData;
 use PayMe\Remotisan\CommandsRepository;
 use PayMe\Remotisan\Remotisan;
-use Symfony\Component\Console\Command\Command;
 
 class RemotisanController extends Controller {
 
@@ -31,11 +23,13 @@ class RemotisanController extends Controller {
         return view('remotisan::index');
     }
 
-    public function commands()
+    public function commands(Request $request)
     {
+        $this->rt->checkAuth();
+
         return [
-            "commands" => $this->commandsRepo->all()
-                                             ->filter(fn(CommandData $c) => str_contains($c->getName(), "migrat"))
+            "commands" => $this->commandsRepo->allByRole($this->rt->getUserGroup())
+                ->filter(fn(CommandData $c) => str_contains($c->getName(), "migrat"))
         ];
     }
 
@@ -44,8 +38,6 @@ class RemotisanController extends Controller {
         $command    = $request->json("command");
         $definition = $request->json("definition", []);
 
-        $this->rt->checkAuth($request);
-
         return [
             "id" => $this->rt->execute($command, $definition)
         ];
@@ -53,7 +45,7 @@ class RemotisanController extends Controller {
 
     public function read(Request $request, $uuid)
     {
-        $this->rt->checkAuth($request);
+        $this->rt->checkAuth();
 
         return $this->rt->read($uuid);
     }

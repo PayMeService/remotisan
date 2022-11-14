@@ -1,11 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: omer
- * Date: 05/11/2022
- * Time: 13:06
- */
-
 namespace PayMe\Remotisan;
 
 use Illuminate\Support\Collection;
@@ -17,10 +10,10 @@ class CommandsRepository
     /**
      * @return Collection
      */
-    public function all(): Collection
+    public function all(callable $filter): Collection
     {
         return collect(Artisan::all())
-            ->filter(fn (Command $command) => $this->canExecute($command))
+            ->when($filter, $filter)
             ->map(fn(Command $command) => new CommandData(
                 $command->getName(),
                 $command->getDefinition(),
@@ -29,13 +22,15 @@ class CommandsRepository
             ));
     }
 
+    public function allByRole($role): Collection
+    {
+        return $this->all(function(Collection $commands) use ($role) {
+            return $commands->filter(fn(CommandData $command) => $command->canExecute($role));
+        });
+    }
+
     public function find(string $name): ?CommandData
     {
         return $this->all()->first(fn(CommandData $cd) => $cd->getName() == $name);
-    }
-
-    private function canExecute(Command $command)
-    {
-        return true;
     }
 }

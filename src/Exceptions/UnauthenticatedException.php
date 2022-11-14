@@ -1,11 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: omer
- * Date: 10/11/2022
- * Time: 16:02
- */
-
 namespace PayMe\Remotisan\Exceptions;
 
 use Throwable;

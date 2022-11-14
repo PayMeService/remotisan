@@ -3,7 +3,6 @@
 namespace PayMe\Remotisan;
 
 use Illuminate\Console\Application;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\ProcessUtils;
 use Illuminate\Support\Str;
@@ -14,8 +13,8 @@ class Remotisan
 {
 
     private CommandsRepository $commandsRepo;
-    /** @var ?callable */
-    private static $authWith = null;
+    /** @var callable[] */
+    private static array $authWith = [];
 
     public function __construct(CommandsRepository $commandsRepo)
     {
@@ -24,9 +23,11 @@ class Remotisan
 
     public function execute(string $command, array $definition = [])
     {
-        if (!$this->commandsRepo->find($command)) {
+        if (!$commandData = $this->commandsRepo->find($command)) {
             throw new \RuntimeException("command '{$command}' not allowed");
         }
+
+        $commandData->checkExecute($this->getUserGroup());
 
         $uuid = Str::uuid()->toString();
         $output = ProcessUtils::escapeArgument($this->getFilePath($uuid));
@@ -70,15 +71,29 @@ class Remotisan
     }
 
 
-    public function authWith(callable $callable): void
+    public function authWith($role, callable $callable): void
     {
-        static::$authWith = $callable;
+        static::$authWith[$role] = $callable;
     }
 
-    public function checkAuth(Request $request): void
+    public function getUserGroup(): ?string
     {
-        if (static::$authWith && call_user_func_array(static::$authWith, [$request])) {
-            throw new UnauthenticatedException();
+        $request = \Illuminate\Support\Facades\Request::instance();
+        foreach(static::$authWith as $role => $callable) {
+            if (call_user_func_array($callable, [$request])) {
+                return $role;
+            }
+        }
+
+        return null;
+    }
+
+    public function checkAuth(): void
+    {
+        $group = $this->getUserGroup();
+
+        if (!$group) {
+            throw new (config('remotisan.authentication_exception_class', UnauthenticatedException::class))();
         }
     }
 }

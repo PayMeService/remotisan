@@ -27,7 +27,7 @@ You can publish the config file with:
 php artisan vendor:publish --tag="remotisan-config"
 ```
 
-Optionally, you can publish the views using
+Optionally, you can publish the views using. The views will be published into _**/resources/views/vendor/remotisan/**_ directory for your further adjustments.
 
 @todo - add publish views.
 ```bash
@@ -36,7 +36,64 @@ php artisan vendor:publish --tag="remotisan-views"
 
 ## Configuration
 
-@todo explain about config, it's options and abilities.
+After publishing config, find your remotisan's configuration file in <PROJECT_DIR>/config/remotisan.php
+
+* Remotisan allows you to customize default routes prefix, by adjusting **base_url_prefix** setting, do not forget to clear cached routes afterwards.
+* Add any command you wish to be exposed to Remotisan in config, by adjusting the following part
+
+Note: UserRoles class is NOT provided, for demonstration purpose only!
+```php
+[
+    "allowance_rules" => [
+        "roles" => [
+            UserRoles::TECH_SUPPORT, 
+            UserRoles::DEV_OPS
+        ]
+    ],
+    "commands" =>
+        "allowed" => [ // command level ACL.
+            "COMMAND_NAME" => [
+                UserRoles::TECH_SUPPORT, 
+            ],
+            "COMMAND_FOR_DEVOPS_ONLY" => [
+                UserRoles::DEV_OPS
+            ],
+            "COMMAND_SHARED" => [
+                UserRoles::TECH_SUPPORT,
+                UserRoles::DEV_OPS
+            ]
+        ]
+]
+```
+
+Use roles to define who is allowed to execute the command.
+
+## Authentication
+In the AppServiceProvider::register() add calls to authWith(ROLE, callable).
+
+Callable is expected to identify and return the User Role.
+
+The roles **MUST** be matching to the roles you've defined in _Remotisan_ config.
+```php
+        $remotisan = app()->make(PayMe\Remotisan\Remotisan::class);
+        $remotisan->authWith(UserRoles::USER, function(\Illuminate\Http\Request $request) {
+            return $request->user('web');
+        });
+        
+        $remotisan->authWith(function(\Illuminate\Http\Request $request) {
+            /** @var User|null $user */
+            $user = $request->user('web');
+
+            if (!$user) {
+                return UserRoles::GUEST;
+            }
+            if (!$user->isAllowed(UserPermissions::SUPER_ADMIN)) {
+                return UserRoles::SUPER_ADMIN;
+            }
+            
+            return UserRoles::USER;
+        });
+```
 
 ## Testing
 
