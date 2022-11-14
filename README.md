@@ -34,6 +34,10 @@ Optionally, you can publish the views using
 php artisan vendor:publish --tag="remotisan-views"
 ```
 
+## Configuration
+
+@todo explain about config, it's options and abilities.
+
 ## Testing
 
 ```bash
