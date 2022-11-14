@@ -7,6 +7,8 @@
 
 The package allows you to execute artisan commands remotely, using HTTP, and receiving propagating output on the page.
 
+**Your command execution won't run into server's MAX_EXECUTION_TIME**, allowing you to preserve original server configuration.
+
 The basic view is included in the package, as well as the basic config (make sure you publish config).
 
 In general, the package could very well assist transitioning your project to CI/CD with auto-scaling, whenever you don't really know which boxes you have to connect to in order to perform specific command you want. 
