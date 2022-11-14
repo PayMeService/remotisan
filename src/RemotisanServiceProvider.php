@@ -13,10 +13,15 @@ class RemotisanServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+        $this->publishes([
+            __DIR__.'/../config/remotisan.php' => config_path('remotisan.php'),
+        ], 'remotisan-config');
+
         $this->mergeConfigFrom(
             __DIR__ . '/../config/remotisan.php',
             'remotisan'
         );
+
         $this->loadRoutesFrom(__DIR__ . '/../routes/web.php');
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'remotisan');
     }
