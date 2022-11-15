@@ -91,6 +91,13 @@ We are adding the auth callable to identify whether user is of specific role, so
         });
 ```
 
+## Setting ENV specific commands
+You are able to configure environment specific commands by simply static json string in your .env file with name `REMOTISAN_ALLOWED_COMMANDS`.
+```dotenv
+REMOTISAN_ALLOWED_COMMANDS='{"artisanCommandName":{"roles":[]}, "artisanSecondCommand":{"roles":[]}}'
+```
+Now you are good to go.
+
 ## Testing
 
 ```bash
