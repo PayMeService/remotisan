@@ -122,7 +122,7 @@ class Remotisan
     {
         $group = $this->getUserGroup();
 
-        if (!$group) {
+        if (!$group) { // @todo if(!in_array($group, config("remotisan.allowance_rules"))) after we implement user groups/roles.
             throw new UnauthenticatedException();
         }
     }
