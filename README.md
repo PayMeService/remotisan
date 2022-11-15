@@ -74,24 +74,20 @@ In the AppServiceProvider::register() add calls to authWith(ROLE, callable).
 Callable is expected to identify and return the User Role.
 
 The roles **MUST** be matching to the roles you've defined in _Remotisan_ config.
+
+We are adding the auth callable to identify whether user is of specific role, so package could restrict or allow actions.
 ```php
         $remotisan = app()->make(PayMe\Remotisan\Remotisan::class);
-        $remotisan->authWith(UserRoles::USER, function(\Illuminate\Http\Request $request) {
-            return $request->user('web');
-        });
-        
-        $remotisan->authWith(function(\Illuminate\Http\Request $request) {
+        $remotisan->authWith(UserRoles::TECH_SUPPORT, function(\Illuminate\Http\Request $request) {
             /** @var User|null $user */
             $user = $request->user('web');
-
-            if (!$user) {
-                return UserRoles::GUEST;
-            }
-            if (!$user->isAllowed(UserPermissions::SUPER_ADMIN)) {
-                return UserRoles::SUPER_ADMIN;
-            }
-            
-            return UserRoles::USER;
+            return $user && $user->isAllowed(UserPermissions::TECH_SUPPORT);
+        });
+        
+        $remotisan->authWith(UserRoles::DEV_OPS, function(\Illuminate\Http\Request $request) {
+            /** @var User|null $user */
+            $user = $request->user('web');
+            return $user && $user->isAllowed(UserPermissions::TECH_SUPPORT);
         });
 ```
 
