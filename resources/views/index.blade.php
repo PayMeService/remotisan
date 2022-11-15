@@ -26,7 +26,7 @@
                 ng-options='c.name as (c.name + " - " + c.description) for c in commands' ng-change="onChangeDropdownValue()">
         </select>
 
-        <textarea name="command_arguments" ng-model="command_arguments" style="width:70%"></textarea>
+        <textarea placeholder="input options & arguments (if required)..." name="command_arguments" ng-model="command_arguments" style="width:70%"></textarea>
 
         <input type="button" class="btn btn-primary" ng-click="execute()" value="Execute" />
 
