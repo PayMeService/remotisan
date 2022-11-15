@@ -43,7 +43,6 @@
                 </div>
 
             </div>
-            <!-- @todo render command details, arguments and options -->
         </div>
     </form>
 

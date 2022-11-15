@@ -13,10 +13,22 @@ class RemotisanServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        $this->registerPublishers();
-        $this->registerConfigs();
+        $this->publishes([
+            __DIR__.'/../config/remotisan.php' => config_path('remotisan.php'),
+        ], 'remotisan-config');
+
+        $this->publishes([
+            __DIR__.'/../resources/views' => resource_path('views/vendor/remotisan'),
+        ], 'remotisan-views');
+
+        $this->mergeConfigFrom(
+            __DIR__ . '/../config/remotisan.php',
+            'remotisan'
+        );
+
         $this->loadRoutesFrom(__DIR__ . '/../routes/web.php');
-        $this->registerViews();
+
+        $this->setViews();
     }
 
     /**
@@ -32,37 +44,9 @@ class RemotisanServiceProvider extends ServiceProvider
     }
 
     /**
-     * Setting the publishers available for tags in artisan vendor:publish.
      * @return void
      */
-    protected function registerPublishers(): void
-    {
-        $this->publishes([
-            __DIR__.'/../config/remotisan.php' => config_path('remotisan.php'),
-        ], 'remotisan-config');
-
-        $this->publishes([
-            __DIR__.'/../resources/views' => resource_path('views/vendor/remotisan'),
-        ], 'remotisan-views');
-    }
-
-    /**
-     * Setting package dedicated configs
-     * @return void
-     */
-    protected function registerConfigs(): void
-    {
-        $this->mergeConfigFrom(
-            __DIR__ . '/../config/remotisan.php',
-            'remotisan'
-        );
-    }
-
-    /**
-     * Sets the package related views.
-     * @return void
-     */
-    protected function registerViews(): void
+    protected function setViews(): void
     {
         if(view()->exists('vendor.remotisan.index')) {
             $pathToViews = resource_path('views/vendor');

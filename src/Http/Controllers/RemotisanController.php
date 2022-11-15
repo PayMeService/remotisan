@@ -1,4 +1,11 @@
 <?php
+/**
+ * Created by PhpStorm.
+ * User: omer
+ * Date: 04/11/2022
+ * Time: 21:10
+ */
+
 namespace PayMe\Remotisan\Http\Controllers;
 
 use Illuminate\Http\Request;
@@ -12,18 +19,34 @@ class RemotisanController extends Controller {
     protected Remotisan $rt;
     protected CommandsRepository $commandsRepo;
 
+    const PARAM_COMMAND             = "command";
+    const PARAM_COMMAND_TO_EXECUTE  = "command_to_execute";
+    const PARAM_DEFINITION          = "definition";
+
+    /**
+     * @param Remotisan          $rt
+     * @param CommandsRepository $commandsRepo
+     */
     public function __construct(Remotisan $rt, CommandsRepository $commandsRepo)
     {
         $this->rt = $rt;
         $this->commandsRepo = $commandsRepo;
     }
 
-    public function index()
+    /**
+     * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Contracts\View\Factory|\Illuminate\Contracts\View\View
+     */
+    public function index(): \Illuminate\Contracts\View\View
     {
         return view('remotisan::index');
     }
 
-    public function commands(Request $request)
+    /**
+     * @param Request $request
+     *
+     * @return array
+     */
+    public function commands(Request $request): array
     {
         $this->rt->checkAuth();
 
@@ -33,17 +56,30 @@ class RemotisanController extends Controller {
         ];
     }
 
-    public function execute(Request $request)
+    /**
+     * @param Request $request
+     *
+     * @return array
+     */
+    public function execute(Request $request): array
     {
-        $command    = $request->json("command");
-        $definition = $request->json("definition", []);
+        $command            = $request->json(static::PARAM_COMMAND);
+        $commandToExec      = $request->json(static::PARAM_COMMAND_TO_EXECUTE);
+        $definition         = $request->json(static::PARAM_DEFINITION, []);
 
         return [
-            "id" => $this->rt->execute($command, $definition)
+            "id" => $this->rt->execute($command, $commandToExec, $definition)
         ];
     }
 
-    public function read(Request $request, $uuid)
+    /**
+     * @param Request $request
+     * @param         $uuid
+     *
+     * @return array
+     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
+     */
+    public function read(Request $request, $uuid): array
     {
         $this->rt->checkAuth();
 

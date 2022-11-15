@@ -3,6 +3,8 @@
 namespace PayMe\Remotisan;
 
 use Illuminate\Console\Application;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\ProcessUtils;
 use Illuminate\Support\Str;
@@ -16,12 +18,22 @@ class Remotisan
     /** @var callable[] */
     private static array $authWith = [];
 
+    /**
+     * @param CommandsRepository $commandsRepo
+     */
     public function __construct(CommandsRepository $commandsRepo)
     {
         $this->commandsRepo = $commandsRepo;
     }
 
-    public function execute(string $command, array $definition = [])
+    /**
+     * @param string $command
+     * @param string $commandToExec
+     * @param array  $definition
+     *
+     * @return string
+     */
+    public function execute(string $command, string $commandToExec, array $definition = []): string
     {
         if (!$commandData = $this->commandsRepo->find($command)) {
             throw new \RuntimeException("command '{$command}' not allowed");
@@ -32,7 +44,7 @@ class Remotisan
         $uuid = Str::uuid()->toString();
         $output = ProcessUtils::escapeArgument($this->getFilePath($uuid));
 
-        $command = $command.' > '.$output.'; echo '.$uuid.' >> '.$output;
+        $command = $commandToExec.' > '.$output.'; echo '.$uuid.' >> '.$output;
 
         $p = Process::fromShellCommandline('('.Application::formatCommandString($command).') 2>&1 &', base_path(), null, null, null);
         $p->start();
@@ -42,7 +54,13 @@ class Remotisan
         return $uuid;
     }
 
-    public function read($executionUuid)
+    /**
+     * @param $executionUuid
+     *
+     * @return array
+     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
+     */
+    public function read($executionUuid): array
     {
         $content = explode(PHP_EOL, rtrim(File::get($this->getFilePath($executionUuid))));
         $lines = count($content);
@@ -71,11 +89,20 @@ class Remotisan
     }
 
 
+    /**
+     * @param          $role
+     * @param callable $callable
+     *
+     * @return void
+     */
     public function authWith($role, callable $callable): void
     {
         static::$authWith[$role] = $callable;
     }
 
+    /**
+     * @return string|null
+     */
     public function getUserGroup(): ?string
     {
         $request = \Illuminate\Support\Facades\Request::instance();
@@ -88,12 +115,16 @@ class Remotisan
         return null;
     }
 
+    /**
+     * @return void
+     * @throws UnauthenticatedException
+     */
     public function checkAuth(): void
     {
         $group = $this->getUserGroup();
 
         if (!$group) {
-            throw new (config('remotisan.authentication_exception_class', UnauthenticatedException::class))();
+            throw new UnauthenticatedException();
         }
     }
 }

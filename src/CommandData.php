@@ -1,4 +1,11 @@
 <?php
+/**
+ * Created by PhpStorm.
+ * User: omer
+ * Date: 05/11/2022
+ * Time: 13:22
+ */
+
 namespace PayMe\Remotisan;
 
 use Illuminate\Contracts\Support\Arrayable;
@@ -6,6 +13,7 @@ use Illuminate\Support\Collection;
 use JsonSerializable;
 use PayMe\Remotisan\Exceptions\UnauthenticatedException;
 use Psy\Util\Str;
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputDefinition;
 use Symfony\Component\Console\Input\InputOption;
@@ -29,26 +37,41 @@ class CommandData  implements Arrayable, JsonSerializable
         $this->description = $description;
     }
 
+    /**
+     * @return string
+     */
     public function getName(): string
     {
         return $this->name;
     }
 
+    /**
+     * @return InputDefinition
+     */
     public function getDefinition(): InputDefinition
     {
         return $this->definition;
     }
 
+    /**
+     * @return string|null
+     */
     public function getHelp(): ?string
     {
         return $this->help;
     }
 
+    /**
+     * @return string|null
+     */
     public function getDescription(): ?string
     {
         return $this->description;
     }
 
+    /**
+     * @return array
+     */
     public function toArray(): array
     {
         return [
@@ -62,11 +85,17 @@ class CommandData  implements Arrayable, JsonSerializable
         ];
     }
 
+    /**
+     * @return array|mixed
+     */
     public function jsonSerialize()
     {
         return $this->toArray();
     }
 
+    /**
+     * @return Collection
+     */
     public function ArgsToArray(): Collection
     {
         return collect($this->getDefinition()->getArguments())
@@ -78,6 +107,9 @@ class CommandData  implements Arrayable, JsonSerializable
             ]);
     }
 
+    /**
+     * @return Collection
+     */
     public function optionsToArray(): Collection
     {
         return collect($this->getDefinition()->getOptions())
@@ -90,16 +122,28 @@ class CommandData  implements Arrayable, JsonSerializable
             ]);
     }
 
-    public function canExecute(string $role)
+    /**
+     * @param string $role
+     *
+     * @return bool
+     */
+    public function canExecute(string $role): bool
     {
         $roles = config("remotisan.commands.allowed.{$this->getName()}.roles", []);
+
         return $roles != "*" && !in_array($role, $roles);
     }
 
-    public function checkExecute(string $role)
+    /**
+     * @param string $role
+     *
+     * @return void
+     * @throws UnauthenticatedException
+     */
+    public function checkExecute(string $role): void
     {
         if (!$this->canExecute($role)) {
-            throw new (config('remotisan.authentication_exception_class', UnauthenticatedException::class))();
+            throw new UnauthenticatedException();
         }
     }
 }

@@ -22,11 +22,21 @@ class CommandsRepository
             ));
     }
 
+    /**
+     * @param string $role
+     *
+     * @return Collection
+     */
     public function allByRole($role): Collection
     {
         return $this->all()->filter(fn(CommandData $command) => $command->canExecute($role));
     }
 
+    /**
+     * @param string $name
+     *
+     * @return CommandData|null
+     */
     public function find(string $name): ?CommandData
     {
         return $this->all()->first(fn(CommandData $cd) => $cd->getName() == $name);
