@@ -1,11 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: omer
- * Date: 05/11/2022
- * Time: 13:22
- */
-
 namespace PayMe\Remotisan;
 
 use Illuminate\Contracts\Support\Arrayable;
@@ -13,7 +6,6 @@ use Illuminate\Support\Collection;
 use JsonSerializable;
 use PayMe\Remotisan\Exceptions\UnauthenticatedException;
 use Psy\Util\Str;
-use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputDefinition;
 use Symfony\Component\Console\Input\InputOption;
@@ -131,7 +123,7 @@ class CommandData  implements Arrayable, JsonSerializable
     {
         $roles = config("remotisan.commands.allowed.{$this->getName()}.roles", []);
 
-        return $roles != "*" && !in_array($role, $roles);
+        return in_array("*", $roles) || in_array($role, $roles);
     }
 
     /**

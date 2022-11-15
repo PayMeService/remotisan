@@ -1,10 +1,7 @@
 <?php
-
 namespace PayMe\Remotisan;
 
 use Illuminate\Console\Application;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\ProcessUtils;
 use Illuminate\Support\Str;
@@ -122,7 +119,7 @@ class Remotisan
     {
         $group = $this->getUserGroup();
 
-        if (!$group) { // @todo if(!in_array($group, config("remotisan.allowance_rules"))) after we implement user groups/roles.
+        if (!$group) {
             throw new UnauthenticatedException();
         }
     }
