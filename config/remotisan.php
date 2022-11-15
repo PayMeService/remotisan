@@ -6,14 +6,12 @@ return [
         "roles" => ["superadmin"]
     ],
     "commands" => [
-        "allowed" => [
+        "allowed" => array_merge([
             "migrate:status" => ["roles" => []],
             "migrate" => ["roles" => []],
-        ],json_decode(env('REMOTISAN_ALLOWED_COMMANDS', '{"*"}'), true)
+        ], json_decode(env('REMOTISAN_ALLOWED_COMMANDS', '{"*"}'), true)),
     ],
     "logger" => [
         "path" => env('REMOTISAN_LOG_PATH', storage_path('temp/')),
-    ],
-    "authentication_exception_class" => \PayMe\Remotisan\Exceptions\UnauthenticatedException::class
+    ]
 ];
-
