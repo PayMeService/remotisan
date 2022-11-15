@@ -13,15 +13,16 @@ use Illuminate\Routing\Controller;
 use PayMe\Remotisan\CommandData;
 use PayMe\Remotisan\CommandsRepository;
 use PayMe\Remotisan\Remotisan;
+use Symfony\Component\Console\Command\Command;
 
 class RemotisanController extends Controller {
 
     protected Remotisan $rt;
     protected CommandsRepository $commandsRepo;
 
-    const PARAM_COMMAND             = "command";
-    const PARAM_COMMAND_TO_EXECUTE  = "command_to_execute";
-    const PARAM_DEFINITION          = "definition";
+    const PARAM_COMMAND         = "command";
+    const PARAM_COMMAND_ARGS    = "command_arguments";
+    const PARAM_DEFINITION      = "definition";
 
     /**
      * @param Remotisan          $rt
@@ -63,12 +64,12 @@ class RemotisanController extends Controller {
      */
     public function execute(Request $request): array
     {
-        $command            = $request->json(static::PARAM_COMMAND);
-        $commandToExec      = $request->json(static::PARAM_COMMAND_TO_EXECUTE);
-        $definition         = $request->json(static::PARAM_DEFINITION, []);
+        $command    = $request->json(static::PARAM_COMMAND);
+        $arguments  = $request->json(static::PARAM_COMMAND_ARGS);
+        $definition = $request->json(static::PARAM_DEFINITION, []);
 
         return [
-            "id" => $this->rt->execute($command, $commandToExec, $definition)
+            "id" => $this->rt->execute($command, $arguments, $definition)
         ];
     }
 

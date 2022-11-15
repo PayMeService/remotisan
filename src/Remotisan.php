@@ -28,12 +28,11 @@ class Remotisan
 
     /**
      * @param string $command
-     * @param string $commandToExec
-     * @param array  $definition
+     * @param string $commandArguments
      *
      * @return string
      */
-    public function execute(string $command, string $commandToExec, array $definition = []): string
+    public function execute(string $command, string $commandArguments): string
     {
         if (!$commandData = $this->commandsRepo->find($command)) {
             throw new \RuntimeException("command '{$command}' not allowed");
@@ -44,7 +43,7 @@ class Remotisan
         $uuid = Str::uuid()->toString();
         $output = ProcessUtils::escapeArgument($this->getFilePath($uuid));
 
-        $command = $commandToExec.' > '.$output.'; echo '.$uuid.' >> '.$output;
+        $command = $command . ' ' . $commandArguments . ' > ' . $output . '; echo ' . $uuid . ' >> ' . $output;
 
         $p = Process::fromShellCommandline('('.Application::formatCommandString($command).') 2>&1 &', base_path(), null, null, null);
         $p->start();

@@ -25,9 +25,13 @@
         <select required class="custom-select my-1 mr-sm-2" ng-model="command" name="command"
                 ng-options='c.name as (c.name + " - " + c.description) for c in commands' ng-change="onChangeDropdownValue()">
         </select>
-        <textarea name="command_to_execute" ng-model="command_to_execute"></textarea>
+
+        <textarea name="command_arguments" ng-model="command_arguments" style="width:70%"></textarea>
+
         <input type="button" class="btn btn-primary" ng-click="execute()" value="Execute" />
+
         <hr style="opacity:0; display:block; width:100%;"/>
+
         <div id="command_details_wrapper" ng-show="command !== null" ng-model="command_details">
             <div class="abc" style="background-color: #f9fdf0">
                 <div><strong>Command name:</strong> @{{command_details.name}}</div>
@@ -41,7 +45,6 @@
                 <div style="margin-left:20px;" ng-repeat="(field_name, field_details) in command_details['definition']['ops']">
                     <div><strong>@{{field_name}}:</strong> @{{field_details}}</div>
                 </div>
-
             </div>
         </div>
     </form>
@@ -56,7 +59,7 @@
             $scope.baseUrl = '';
             $scope.commands = [];
             $scope.command = null;
-            $scope.command_to_execute = null;
+            $scope.command_arguments = null;
             $scope.command_details = [];
             $scope.params = null;
             $scope.log = {
@@ -69,14 +72,14 @@
             }
 
             $scope.onChangeDropdownValue = function () {
-                $scope.command_to_execute = $scope.command;
+                $scope.command_arguments = '';
                 $scope.command_details = $scope.commands[$scope.command];
             }
 
             $scope.execute = function () {
                 $http.post($scope.baseUrl + "/execute", {
                     command: $scope.command,
-                    command_to_execute: $scope.command_to_execute,
+                    command_arguments: $scope.command_arguments,
                     params: $scope.params
                 }).then(function (response) {
                     $scope.uuid = response.data.id;
