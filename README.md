@@ -13,6 +13,8 @@ The basic view is included in the package, as well as the basic config (make sur
 
 In general, the package could very well assist transitioning your project to CI/CD with auto-scaling, whenever you don't really know which boxes you have to connect to in order to perform specific command you want. 
 
+As well, if you disconnected in process of command execution, but you got the URL. When you get back online, the page refreshes and will STILL bring you the log of the execution of your command. This way, you are not losing track.
+
 ## Installation
 
 You can install the package via composer:
@@ -29,7 +31,6 @@ php artisan vendor:publish --tag="remotisan-config"
 
 Optionally, you can publish the views using. The views will be published into _**/resources/views/vendor/remotisan/**_ directory for your further adjustments.
 
-@todo - add publish views.
 ```bash
 php artisan vendor:publish --tag="remotisan-views"
 ```
