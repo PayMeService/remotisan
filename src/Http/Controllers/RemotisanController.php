@@ -5,6 +5,7 @@ namespace PayMe\Remotisan\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use PayMe\Remotisan\CommandsRepository;
+use PayMe\Remotisan\Exceptions\UnauthenticatedException;
 use PayMe\Remotisan\Remotisan;
 
 class RemotisanController extends Controller {
@@ -56,6 +57,7 @@ class RemotisanController extends Controller {
      */
     public function execute(Request $request): array
     {
+        $this->rt->checkAuth();
         $command    = $request->json(static::PARAM_COMMAND);
         $arguments  = $request->json(static::PARAM_COMMAND_ARGS);
         $definition = $request->json(static::PARAM_DEFINITION, []);

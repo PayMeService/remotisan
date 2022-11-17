@@ -117,9 +117,7 @@ class Remotisan
      */
     public function checkAuth(): void
     {
-        $group = $this->getUserGroup();
-
-        if (!$group) {
+        if(!in_array($this->getUserGroup(), config('remotisan.allowance_rules.roles', []))) {
             throw new UnauthenticatedException();
         }
     }
