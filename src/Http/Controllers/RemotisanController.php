@@ -32,7 +32,7 @@ class RemotisanController extends Controller {
      */
     public function index(): \Illuminate\Contracts\View\View
     {
-        $this->rt->checkAuth();
+        $this->rt->routeGuardAuth();
         return view('remotisan::index');
     }
 
@@ -43,7 +43,7 @@ class RemotisanController extends Controller {
      */
     public function commands(Request $request): array
     {
-        $this->rt->checkAuth();
+        $this->rt->routeGuardAuth();
 
         return [
             "commands" => $this->commandsRepo->allByRole($this->rt->getUserGroup())
@@ -57,7 +57,7 @@ class RemotisanController extends Controller {
      */
     public function execute(Request $request): array
     {
-        $this->rt->checkAuth();
+        $this->rt->routeGuardAuth();
         $command    = $request->json(static::PARAM_COMMAND);
         $arguments  = $request->json(static::PARAM_COMMAND_ARGS);
         $definition = $request->json(static::PARAM_DEFINITION, []);
@@ -76,7 +76,7 @@ class RemotisanController extends Controller {
      */
     public function read(Request $request, $uuid): array
     {
-        $this->rt->checkAuth();
+        $this->rt->routeGuardAuth();
 
         return $this->rt->read($uuid);
     }

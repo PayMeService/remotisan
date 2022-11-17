@@ -115,7 +115,7 @@ class Remotisan
      * @return void
      * @throws UnauthenticatedException
      */
-    public function checkAuth(): void
+    public function routeGuardAuth(): void
     {
         if(!in_array($this->getUserGroup(), config('remotisan.allowance_rules.roles', []))) {
             throw new UnauthenticatedException();
