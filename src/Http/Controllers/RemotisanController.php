@@ -31,6 +31,7 @@ class RemotisanController extends Controller {
      */
     public function index(): \Illuminate\Contracts\View\View
     {
+        $this->rt->checkAuth();
         return view('remotisan::index');
     }
 
@@ -42,8 +43,6 @@ class RemotisanController extends Controller {
     public function commands(Request $request): array
     {
         $this->rt->checkAuth();
-
-        // @todo fix below to match commands against configured commands !
 
         return [
             "commands" => $this->commandsRepo->allByRole($this->rt->getUserGroup())
