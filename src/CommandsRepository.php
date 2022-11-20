@@ -1,10 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: omer
- * Date: 05/11/2022
- * Time: 13:06
- */
 
 namespace PayMe\Remotisan;
 
@@ -20,7 +14,6 @@ class CommandsRepository
     public function all(): Collection
     {
         return collect(Artisan::all())
-            ->filter(fn (Command $command) => $this->canExecute($command))
             ->map(fn(Command $command) => new CommandData(
                 $command->getName(),
                 $command->getDefinition(),
@@ -29,13 +22,29 @@ class CommandsRepository
             ));
     }
 
+    /**
+     * @param string $role
+     *
+     * @return Collection
+     */
+    public function allByRole($role): Collection
+    {
+        $configuredCommands = config('remotisan.commands.allowed');
+
+        return $this->all()
+            ->filter(function(CommandData $c) use ($configuredCommands) {
+                return array_key_exists($c->getName(), $configuredCommands);
+            })
+            ->filter(fn(CommandData $command) => $command->canExecute($role));
+    }
+
+    /**
+     * @param string $name
+     *
+     * @return CommandData|null
+     */
     public function find(string $name): ?CommandData
     {
         return $this->all()->first(fn(CommandData $cd) => $cd->getName() == $name);
-    }
-
-    private function canExecute(Command $command)
-    {
-        return true;
     }
 }

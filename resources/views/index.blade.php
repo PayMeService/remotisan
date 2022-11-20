@@ -17,70 +17,10 @@
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
 </head>
 <body ng-app="RemotisanApp">
-
-<div class="container" id="container" ng-controller="RemotisanController">
-    <h2>Commands</h2>
-    <form class="form-inline" ng-submit="execute()" ng-init='init()'>
-        <label class="my-1 mr-2" for="inlineFormCustomSelectPref">Preference</label>
-        <select required class="custom-select my-1 mr-sm-2" ng-model="command" name="command"
-            ng-options='c.name as (c.name + " - " + c.description) for c in commands'>
-        </select>
-        <input type="button" class="btn btn-primary" ng-click="execute()" value="Execute" />
-    </form>
-
-    <h2>Logger</h2>
-    <pre style="width: 90%; background-color: black; color: darkcyan;font-family: 'Space Mono', sans-serif;">@{{ log.content }}</pre>
-</div>
+@include("remotisan::html")
 </body>
 <script>
-    angular.module('RemotisanApp', [])
-        .controller('RemotisanController', ["$scope", "$http", "$timeout", "$sce", function($scope, $http, $timeout, $sce) {
-            $scope.commands = [];
-            $scope.command = null;
-            $scope.params = null;
-            $scope.log = {
-                uuid: null,
-                content: "",
-            }
-            $scope.init = function() {
-                $scope.fetchCommands();
-            }
-
-            $scope.execute = function () {
-                $http.post("/remotisan/execute", {
-                    command: $scope.command,
-                    params: $scope.params
-                }).then(function (response) {
-                    $scope.uuid = response.data.id;
-
-                    $timeout( function(){ $scope.readLog(); }, 5000);
-                }, function (response) {
-                    console.log(response);
-                });
-            }
-
-            $scope.fetchCommands = function () {
-                $http.get("/remotisan/commands")
-                    .then(function (response) {
-                        $scope.commands = response.data.commands;
-                    }, function (response) {
-                        console.log(response);
-                    });
-            }
-
-            $scope.readLog = function () {
-                $http.get("/remotisan/execute/" + $scope.uuid)
-                    .then(function (response) {
-                        console.log(response.data);
-                        $scope.log.content = response.data.content.join("\n");
-                        if (!response.data.isEnded) {
-                            $timeout( function(){ $scope.readLog(); }, 1000);
-                        }
-                }, function (response) {
-                    console.log(response);
-                });
-            }
-        }]);
+    @include("remotisan::scripts")
 </script>
 <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
