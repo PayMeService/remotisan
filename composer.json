@@ -34,9 +34,6 @@
             "PayMe\\Remotisan\\Tests\\": "tests"
         }
     },
-    "scripts": {
-        "post-autoload-dump": "@php ./vendor/bin/testbench package:discover --ansi"
-    },
     "config": {
         "sort-packages": true
     },
@@ -44,7 +41,10 @@
         "laravel": {
             "providers": [
                 "PayMe\\Remotisan\\RemotisanServiceProvider"
-            ]
+            ],
+            "aliases": {
+                "Remotisan": "PayMe\\Remotisan\\Facades\\Remotisan"
+            }
         }
     },
     "minimum-stability": "dev",

@@ -13,10 +13,6 @@ class RemotisanController extends Controller {
     protected Remotisan $rt;
     protected CommandsRepository $commandsRepo;
 
-    const PARAM_COMMAND         = "command";
-    const PARAM_COMMAND_ARGS    = "command_arguments";
-    const PARAM_DEFINITION      = "definition";
-
     /**
      * @param Remotisan          $rt
      * @param CommandsRepository $commandsRepo
@@ -32,7 +28,8 @@ class RemotisanController extends Controller {
      */
     public function index(): \Illuminate\Contracts\View\View
     {
-        $this->rt->routeGuardAuth();
+        $this->rt->requireAuthenticated();
+
         return view('remotisan::index');
     }
 
@@ -43,7 +40,7 @@ class RemotisanController extends Controller {
      */
     public function commands(Request $request): array
     {
-        $this->rt->routeGuardAuth();
+        $this->rt->requireAuthenticated();
 
         return [
             "commands" => $this->commandsRepo->allByRole($this->rt->getUserGroup())
@@ -57,13 +54,13 @@ class RemotisanController extends Controller {
      */
     public function execute(Request $request): array
     {
-        $this->rt->routeGuardAuth();
-        $command    = $request->json(static::PARAM_COMMAND);
-        $arguments  = $request->json(static::PARAM_COMMAND_ARGS);
-        $definition = $request->json(static::PARAM_DEFINITION, []);
+        $this->rt->requireAuthenticated();
+
+        $command = $request->json("command");
+        $params  = $request->json("params");
 
         return [
-            "id" => $this->rt->execute($command, $arguments, $definition)
+            "id" => $this->rt->execute($command, $params)
         ];
     }
 
@@ -76,7 +73,7 @@ class RemotisanController extends Controller {
      */
     public function read(Request $request, $uuid): array
     {
-        $this->rt->routeGuardAuth();
+        $this->rt->requireAuthenticated();
 
         return $this->rt->read($uuid);
     }

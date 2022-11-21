@@ -2,10 +2,10 @@
 namespace PayMe\Remotisan;
 
 use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use JsonSerializable;
 use PayMe\Remotisan\Exceptions\UnauthenticatedException;
-use Psy\Util\Str;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputDefinition;
 use Symfony\Component\Console\Input\InputOption;
@@ -121,7 +121,7 @@ class CommandData  implements Arrayable, JsonSerializable
      */
     public function canExecute(string $role): bool
     {
-        $roles = config("remotisan.commands.allowed.{$this->getName()}.roles", []);
+        $roles = Arr::wrap(config("remotisan.commands.allowed.{$this->getName()}.roles", []));
 
         return in_array("*", $roles) || in_array($role, $roles);
     }
