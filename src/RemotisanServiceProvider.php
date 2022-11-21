@@ -21,14 +21,9 @@ class RemotisanServiceProvider extends ServiceProvider
             __DIR__.'/../resources/views' => resource_path('views/vendor/remotisan'),
         ], 'remotisan-views');
 
-        $this->mergeConfigFrom(
-            __DIR__ . '/../config/remotisan.php',
-            'remotisan'
-        );
-
         $this->loadRoutesFrom(__DIR__ . '/../routes/web.php');
 
-        $this->setViews();
+        $this->loadViewsFrom(__DIR__ . '/../resources/views', 'remotisan');
     }
 
     /**
@@ -36,24 +31,13 @@ class RemotisanServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->mergeConfigFrom(
+            __DIR__ . '/../config/remotisan.php',
+            'remotisan'
+        );
+
         $this->app->singleton(Remotisan::class, function ($app) {
-            $remotisan = new Remotisan(app()->make(CommandsRepository::class));
-
-            return $remotisan;
+            return new Remotisan($app->make(CommandsRepository::class));
         });
-    }
-
-    /**
-     * @return void
-     */
-    protected function setViews(): void
-    {
-        if(view()->exists('vendor.remotisan.index')) {
-            $pathToViews = resource_path('views/vendor');
-        } else {
-            $pathToViews = __DIR__ . '/../resources/views';
-        }
-
-        $this->loadViewsFrom($pathToViews, 'remotisan');
     }
 }

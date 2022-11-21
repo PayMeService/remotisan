@@ -3,6 +3,7 @@ namespace PayMe\Remotisan;
 
 use Illuminate\Console\Application;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Request;
 use Illuminate\Support\ProcessUtils;
 use Illuminate\Support\Str;
 use PayMe\Remotisan\Exceptions\UnauthenticatedException;
@@ -25,11 +26,11 @@ class Remotisan
 
     /**
      * @param string $command
-     * @param string $commandArguments
+     * @param string $params
      *
      * @return string
      */
-    public function execute(string $command, string $commandArguments): string
+    public function execute(string $command, string $params): string
     {
         if (!$commandData = $this->commandsRepo->find($command)) {
             throw new \RuntimeException("command '{$command}' not allowed");
@@ -40,7 +41,7 @@ class Remotisan
         $uuid = Str::uuid()->toString();
         $output = ProcessUtils::escapeArgument($this->getFilePath($uuid));
 
-        $command = $command . ' ' . $commandArguments . ' > ' . $output . '; echo ' . $uuid . ' >> ' . $output;
+        $command = $command . ' ' . $params . ' > ' . $output . '; echo ' . $uuid . ' >> ' . $output;
 
         $p = Process::fromShellCommandline('('.Application::formatCommandString($command).') 2>&1 &', base_path(), null, null, null);
         $p->start();
@@ -93,7 +94,7 @@ class Remotisan
      */
     public function authWith($role, callable $callable): void
     {
-        static::$authWith[$role] = $callable;
+        static::$authWith[] = ["role" => $role, "callable" => $callable];
     }
 
     /**
@@ -101,23 +102,21 @@ class Remotisan
      */
     public function getUserGroup(): ?string
     {
-        $request = \Illuminate\Support\Facades\Request::instance();
-        foreach(static::$authWith as $role => $callable) {
-            if (call_user_func_array($callable, [$request])) {
-                return $role;
-            }
-        }
+        $request = Request::instance();
 
-        return null;
+        return collect(static::$authWith)
+            ->first(function (array $roleData) use ($request) {
+                return call_user_func_array($roleData["callable"], [$request]);
+            })["role"] ?? null;
     }
 
     /**
      * @return void
      * @throws UnauthenticatedException
      */
-    public function routeGuardAuth(): void
+    public function requireAuthenticated(): void
     {
-        if(!in_array($this->getUserGroup(), config('remotisan.allowance_rules.roles', []))) {
+        if (! $this->getUserGroup()) {
             throw new UnauthenticatedException();
         }
     }

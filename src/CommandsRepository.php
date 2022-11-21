@@ -29,12 +29,8 @@ class CommandsRepository
      */
     public function allByRole($role): Collection
     {
-        $configuredCommands = config('remotisan.commands.allowed');
-
         return $this->all()
-            ->filter(function(CommandData $c) use ($configuredCommands) {
-                return array_key_exists($c->getName(), $configuredCommands);
-            })
+            ->intersectByKeys(config('remotisan.commands.allowed'))
             ->filter(fn(CommandData $command) => $command->canExecute($role));
     }
 

@@ -6,9 +6,7 @@
 $scope.baseUrl = '';
 $scope.commands = [];
 $scope.command = null;
-$scope.command_arguments = null;
-$scope.command_details = [];
-$scope.params = null;
+$scope.params = '';
 $scope.$location = {};
 $scope.log = {
 uuid: null,
@@ -18,7 +16,7 @@ $scope.init = function(baseUrl) {
 $scope.baseUrl = baseUrl;
 $scope.fetchCommands();
 if($location.path() != '') {
-$scope.uuid = $location.path().replace('/', '');
+$scope.log.uuid = $location.path().replace('/', '');
 $scope.readLog();
 }
 }
@@ -29,17 +27,15 @@ return $location.path(newPath);
 }
 
 $scope.onChangeDropdownValue = function () {
-$scope.command_arguments = '';
-$scope.command_details = $scope.commands[$scope.command];
+$scope.params = '';
 }
 
 $scope.execute = function () {
 $http.post($scope.baseUrl + "/execute", {
 command: $scope.command,
-command_arguments: $scope.command_arguments,
 params: $scope.params
 }).then(function (response) {
-$scope.uuid = response.data.id;
+$scope.log.uuid = response.data.id;
 
 $timeout( function(){ $scope.readLog(); }, 5000);
 }, function (response) {
@@ -57,9 +53,9 @@ console.log(response);
 }
 
 $scope.readLog = function () {
-$http.get($scope.baseUrl + "/execute/" + $scope.uuid)
+$http.get($scope.baseUrl + "/execute/" + $scope.log.uuid)
 .then(function (response) {
-$scope.locationPath($scope.uuid);
+$scope.locationPath($scope.log.uuid);
 console.log(response.data);
 $scope.log.content = response.data.content.join("\n");
 if (!response.data.isEnded) {
