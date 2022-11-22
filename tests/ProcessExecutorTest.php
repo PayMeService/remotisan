@@ -17,9 +17,12 @@ class ProcessExecutorTest extends TestCase
 
     public function testEscapesParams()
     {
-        $this->assertEquals(
-            "'firstArg' 'SecondArg' argWith='equalsSign' --emptyOpt='1' --firstOpt='first-value' --second='sec val' --arr='1' --arr='2' ';' 'php' 'artisan' --version='1' '||' 'php' 'artisan' 'migrate:status'",
-            $this->processExecutor->escapeParamsString('firstArg SecondArg argWith=equalsSign --emptyOpt --firstOpt=first-value --second="sec val" --arr=1 --arr=2 ; php artisan --version || php artisan migrate:status')
+        $this->assertContains(
+            $this->processExecutor->escapeParamsString('firstArg SecondArg argWith=equalsSign --emptyOpt --firstOpt=first-value --second="sec val" --arr=1 --arr=2 ; php artisan --version || php artisan migrate:status'),
+            [
+                "'firstArg' 'SecondArg' argWith='equalsSign' --emptyOpt='1' --firstOpt='first-value' --second='sec val' --arr='1' --arr='2' ';' 'php' 'artisan' --version='1' '||' 'php' 'artisan' 'migrate:status'",
+                '"firstArg" "SecondArg" argWith="equalsSign" --emptyOpt="1" --firstOpt="first-value" --second="sec val" --arr="1" --arr="2" ";" "php" "artisan" --version="1" "||" "php" "artisan" "migrate:status"',
+            ]
         );
     }
 }
