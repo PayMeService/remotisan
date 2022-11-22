@@ -15,13 +15,16 @@ class Remotisan
     private CommandsRepository $commandsRepo;
     /** @var callable[] */
     private static array $authWith = [];
+    private ProcessExecutor $processExecutor;
 
     /**
      * @param CommandsRepository $commandsRepo
+     * @param ProcessExecutor    $processExecutor
      */
-    public function __construct(CommandsRepository $commandsRepo)
+    public function __construct(CommandsRepository $commandsRepo, ProcessExecutor $processExecutor)
     {
         $this->commandsRepo = $commandsRepo;
+        $this->processExecutor = $processExecutor;
     }
 
     /**
@@ -39,14 +42,8 @@ class Remotisan
         $commandData->checkExecute($this->getUserGroup());
 
         $uuid = Str::uuid()->toString();
-        $output = ProcessUtils::escapeArgument($this->getFilePath($uuid));
 
-        $command = $command . ' ' . $params . ' > ' . $output . '; echo ' . $uuid . ' >> ' . $output;
-
-        $p = Process::fromShellCommandline('('.Application::formatCommandString($command).') 2>&1 &', base_path(), null, null, null);
-        $p->start();
-        sleep(1);
-        $p->stop();
+        $this->processExecutor->execute($command, $params, $uuid, $this->getFilePath($uuid));
 
         return $uuid;
     }

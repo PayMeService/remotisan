@@ -70,7 +70,7 @@ class CommandData  implements Arrayable, JsonSerializable
             "name"        => $this->getName(),
             "definition"  => [
                 "args" => $this->ArgsToArray(),
-                "ops" => $this->optionsToArray()
+                "ops"  => $this->optionsToArray()
             ],
             "help"        => $this->getHelp(),
             "description" => $this->getDescription()

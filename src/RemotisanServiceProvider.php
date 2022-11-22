@@ -37,7 +37,7 @@ class RemotisanServiceProvider extends ServiceProvider
         );
 
         $this->app->singleton(Remotisan::class, function ($app) {
-            return new Remotisan($app->make(CommandsRepository::class));
+            return new Remotisan(new CommandsRepository(), new ProcessExecutor());
         });
     }
 }

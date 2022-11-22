@@ -1,3 +1,4 @@
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space%20Mono%3Aital%2Cwght%400%2C400&directory=3&display=block">
 
 <div class="container" id="container" data-ng-app="RemotisanApp" data-ng-controller="RemotisanController">
     <h2>Commands</h2>
