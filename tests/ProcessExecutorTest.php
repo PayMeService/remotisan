@@ -4,7 +4,7 @@ namespace PayMe\Remotisan\Tests;
 
 use PayMe\Remotisan\ProcessExecutor;
 
-class TestProcessExecutor extends TestCase
+class ProcessExecutorTest extends TestCase
 {
 
     protected ProcessExecutor $processExecutor;

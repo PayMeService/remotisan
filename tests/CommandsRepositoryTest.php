@@ -7,7 +7,7 @@ use PayMe\Remotisan\CommandData;
 use PayMe\Remotisan\CommandsRepository;
 use PayMe\Remotisan\ProcessExecutor;
 
-class TestCommandsRepository extends TestCase
+class CommandsRepositoryTest extends TestCase
 {
 
     protected CommandsRepository $commandsRepository;
@@ -25,13 +25,14 @@ class TestCommandsRepository extends TestCase
         $migrationsCommand = $this->commandsRepository
             ->all()
             ->filter(fn(CommandData $command) => Str::startsWith($command->getName(), "migrat"))
-            ->sortKeys();
+            ->keys()
+            ->sort();
 
-        $expected = ["migrate","migrate:fresh","migrate:install","migrate:reset","migrate:rollback","migrate:status"];
+        $expected = ["migrate","migrate:fresh","migrate:install","migrate:refresh","migrate:reset","migrate:rollback","migrate:status"];
 
-        $this->assertEmpty($migrationsCommand->keys()->diff(
+        $this->assertTrue($migrationsCommand->diff(
             $expected
-        ));
+        )->isEmpty());
     }
 
     public function testAllByRole()

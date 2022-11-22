@@ -19,7 +19,7 @@
     verbose="true"
 >
     <testsuites>
-        <testsuite name="PayMe Test Suite">
+        <testsuite name="Remotisan Test Suite">
             <directory>tests</directory>
         </testsuite>
     </testsuites>
