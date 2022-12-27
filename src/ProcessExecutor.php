@@ -11,10 +11,12 @@ namespace PayMe\Remotisan;
 use Illuminate\Console\Application;
 use Illuminate\Support\ProcessUtils;
 use Illuminate\Support\Str;
+use Symfony\Component\Process\Exception\ProcessFailedException;
 use Symfony\Component\Process\Process;
 
 class ProcessExecutor
 {
+    protected Process $process;
     /**
      * @param string $command
      * @param string $params
@@ -25,12 +27,29 @@ class ProcessExecutor
     {
         $command = $this->compileShell($output, $params, $command, $uuid);
 
-        $p = Process::fromShellCommandline($command, base_path(), null, null, null);
-        $p->start();
+        $this->process = Process::fromShellCommandline($command, base_path(), null, null, null);
+        $this->process->start();
         usleep(4000);
-        $p->stop();
+        $this->process->stop();
 
-        return $uuid;
+        return $this->process->getPid();
+    }
+
+    /**
+     * Process killer
+     * @param int $pid
+     * @return void
+     */
+    public function killProcess(int $pid): int
+    {
+        $process = Process::fromShellCommandline("kill -9 {$pid}", base_path());
+        $process->run();
+        if(!$process->isSuccessful())
+        {
+            throw new ProcessFailedException($process);
+        }
+
+        return $process->getPid();
     }
 
     public function compileShell(

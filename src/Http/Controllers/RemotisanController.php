@@ -2,11 +2,13 @@
 
 namespace PayMe\Remotisan\Http\Controllers;
 
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use PayMe\Remotisan\CommandsRepository;
 use PayMe\Remotisan\Exceptions\UnauthenticatedException;
 use PayMe\Remotisan\Remotisan;
+use Symfony\Component\Process\Exception\ProcessFailedException;
 
 class RemotisanController extends Controller {
 
@@ -62,6 +64,31 @@ class RemotisanController extends Controller {
         return [
             "id" => $this->rt->execute($command, $params)
         ];
+    }
+
+    /**
+     * Kill process endpoint. If PID returned, then process killed.
+     * @param Request $request
+     * @return array
+     */
+    public function killProcess(Request $request): array
+    {
+        try {
+            $pid = $this->rt->killProcess($request->json("pid"));
+        } catch (ProcessFailedException $e) {
+            $pid = null;
+        }
+
+        return ["pid" => $pid];
+    }
+
+    /**
+     * @param Request $request
+     * @return Collection
+     */
+    public function history(Request $request): Collection
+    {
+        return $this->rt->getHistoryScopedToUser();
     }
 
     /**
