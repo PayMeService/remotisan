@@ -29,6 +29,50 @@
                 </div>
             </div>
         </div>
+
+        <div data-ng-show="history"> <!-- show when history button clicked! -->
+            <div>
+                <table class="">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>User</th>
+                            <th>Command</th>
+                            <th>UUID</th>
+                            <th>PID</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr> <!-- foreach loop -->
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td><span data-ng-click="showLog(UUID)">UUID</span></td><!-- set history data (the uuid) -->
+                            <td></td>
+                            <td></td>
+                            <td>
+                                <span data-ng-click="kill(PID)">Kill Process</span><!-- set history data (the pid) -->
+                            </td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td>ID</td>
+                            <td>User</td>
+                            <td>Command</td>
+                            <td>UUID</td>
+                            <td>PID</td>
+                            <td>Date</td>
+                            <td>Actions</td>
+                        </tr>
+                    </tfoot>
+                </table>
+                <!-- put historic table -->
+                <!-- in table, add the KILL button and retry on kill response error -->
+            </div>
+        </div>
     </form>
 
     <h2>Logger</h2>

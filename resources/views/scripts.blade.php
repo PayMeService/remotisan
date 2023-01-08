@@ -5,9 +5,11 @@
 {{ $ngApp ?? "RemotisanApp" }}.controller('RemotisanController', ["$scope", "$http", "$timeout", "$sce", "$location", function($scope, $http, $timeout, $sce, $location) {
 $scope.baseUrl = '';
 $scope.commands = [];
+$scope.history = [];
 $scope.command = null;
 $scope.params = '';
 $scope.$location = {};
+$scope.killPid = null;
 $scope.log = {
 uuid: null,
 content: "",
@@ -41,6 +43,25 @@ $timeout( function(){ $scope.readLog(); }, 5000);
 }, function (response) {
 console.log(response);
 });
+}
+
+$scope.getHistory = function(){
+    $http.get($scope.baseUrl + "/history").then(function(response){
+        $scope.history = response.data.history;
+    }, function(response){
+        console.log(response);
+    });
+}
+
+$scope.killRun = function(){
+    $http.get($scope.baseUrl + "/kill" + $scope.killPid).then(function(response){
+        // render result.
+        console.log("Response success", response);
+        $scope.killPid = null;
+    },function(response){
+        console.log(response);
+        // offer to retry request to kill.
+    });
 }
 
 $scope.fetchCommands = function () {
