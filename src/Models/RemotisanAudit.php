@@ -26,4 +26,5 @@ class RemotisanAudit extends Model
         "executed_at",
     ];
     protected $guarded = [];
+    public $timestamps = false;
 }

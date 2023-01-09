@@ -73,8 +73,9 @@ class RemotisanController extends Controller {
      */
     public function killProcess(Request $request): array
     {
+        \PMLog::info($request->pid);
         try {
-            $pid = $this->rt->killProcess($request->json("pid"));
+            $pid = $this->rt->killProcess($request->pid);
         } catch (ProcessFailedException $e) {
             $pid = null;
         }

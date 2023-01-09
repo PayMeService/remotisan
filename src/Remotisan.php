@@ -19,7 +19,7 @@ class Remotisan
     private static array $authWith = [];
     private ProcessExecutor $processExecutor;
 
-    protected static string $userDisplayName = '';
+    protected static $userDisplayNameGetter;
 
     /**
      * @param CommandsRepository $commandsRepo
@@ -48,7 +48,7 @@ class Remotisan
         $uuid = Str::uuid()->toString();
 
         $pid = $this->processExecutor->execute($command, $params, $uuid, $this->getFilePath($uuid));
-        $this->audit($pid, $uuid, time(), $command, $params, static::$userDisplayName);
+        $this->audit((int)$pid, $uuid, time(), $command, $params, $this->getUserDisplayName());
 
         return $uuid;
     }
@@ -84,7 +84,7 @@ class Remotisan
     public function getHistoryScopedToUser(): Collection
     {
         return RemotisanAudit::query()
-            ->where("user_name", static::$userDisplayName)
+            ->where("user_name", $this->getUserDisplayName())
             ->orderByDesc("executed_at")
             ->limit(config("remotisan.show_history_records_num"))
             ->get();
@@ -100,13 +100,19 @@ class Remotisan
         return $this->processExecutor->killProcess($pid);
     }
 
+    public function getUserDisplayName():string
+    {
+        $request = Request::instance();
+        return call_user_func_array(static::$userDisplayNameGetter, [$request]);
+    }
+
     /**
      * @param string $userDisplayName
      * @return void
      */
-    public static function setUserDisplayName(string $userDisplayName):void
+    public static function setUserDisplayNameGetter(callable $userDisplayNameGetter):void
     {
-        static::$userDisplayName = $userDisplayName;
+        static::$userDisplayNameGetter = $userDisplayNameGetter;
     }
 
     /**
@@ -162,9 +168,9 @@ class Remotisan
         $request = Request::instance();
 
         return collect(static::$authWith)
-            ->first(function (array $roleData) use ($request) {
-                return call_user_func_array($roleData["callable"], [$request]);
-            })["role"] ?? null;
+                   ->first(function (array $roleData) use ($request) {
+                       return call_user_func_array($roleData["callable"], [$request]);
+                   })["role"] ?? null;
     }
 
     /**

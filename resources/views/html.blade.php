@@ -29,51 +29,50 @@
                 </div>
             </div>
         </div>
-
-        <div data-ng-show="history"> <!-- show when history button clicked! -->
-            <div>
-                <table class="">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>User</th>
-                            <th>Command</th>
-                            <th>UUID</th>
-                            <th>PID</th>
-                            <th>Date</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr> <!-- foreach loop -->
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td><span data-ng-click="showLog(UUID)">UUID</span></td><!-- set history data (the uuid) -->
-                            <td></td>
-                            <td></td>
-                            <td>
-                                <span data-ng-click="kill(PID)">Kill Process</span><!-- set history data (the pid) -->
-                            </td>
-                        </tr>
-                    </tbody>
-                    <tfoot>
-                        <tr>
-                            <td>ID</td>
-                            <td>User</td>
-                            <td>Command</td>
-                            <td>UUID</td>
-                            <td>PID</td>
-                            <td>Date</td>
-                            <td>Actions</td>
-                        </tr>
-                    </tfoot>
-                </table>
-                <!-- put historic table -->
-                <!-- in table, add the KILL button and retry on kill response error -->
-            </div>
-        </div>
     </form>
+
+    <div class="history-wrapper"> <!-- show when history button clicked! -->
+        <span title="show-hide history" data-ng-click="showHistory = !showHistory;"><span data-ng-hide="!showHistory">Hide</span><span data-ng-hide="showHistory">Show</span> History</span>
+        <div data-ng-show="showHistory">
+            <table class="table table-bordered">
+                <thead class="thead-dark">
+                <tr>
+                    <th>#</th>
+                    <th>User</th>
+                    <th>Command</th>
+                    <th>UUID</th>
+                    <th>PID</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                </tr>
+                </thead>
+                <tbody class="table-striped table-hover">
+                <tr data-ng-repeat="(key, log_data) in historyRecords"> <!-- foreach loop -->
+                    <td>@{{log_data.id}}</td>
+                    <td>@{{log_data.user_name}}</td>
+                    <td>@{{log_data.command}} @{{log_data.parameters}}</td>
+                    <td><span data-ng-click="readLog(log_data.uuid)" class="label label-info" style="cursor: pointer;">@{{log_data.uuid}}</span></td><!-- use same call as showing log. -->
+                    <td>@{{log_data.pid}}</td>
+                    <td>@{{log_data.executed_at}}</td>
+                    <td>
+                        <span data-ng-click="killPid(log_data.pid)" class="label label-danger" style="cursor: pointer;">Kill Process</span><!-- set history data (the pid) -->
+                    </td>
+                </tr>
+                </tbody>
+                <tfoot>
+                <tr>
+                    <td>ID</td>
+                    <td>User</td>
+                    <td>Command</td>
+                    <td>UUID</td>
+                    <td>PID</td>
+                    <td>Date</td>
+                    <td>Actions</td>
+                </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
 
     <h2>Logger</h2>
     <pre style="width: 90%; background-color: black; color: darkcyan;font-family: 'Space Mono', sans-serif;">@{{ log.content }}</pre>

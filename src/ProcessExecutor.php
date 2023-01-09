@@ -23,16 +23,16 @@ class ProcessExecutor
      *
      * @return string
      */
-    public function execute(string $command, string $params, string $uuid, string $output): string
+    public function execute(string $command, string $params, string $uuid, string $output): int
     {
         $command = $this->compileShell($output, $params, $command, $uuid);
 
         $this->process = Process::fromShellCommandline($command, base_path(), null, null, null);
         $this->process->start();
+        $pid = $this->process->getPid();
         usleep(4000);
         $this->process->stop();
-
-        return $this->process->getPid();
+        return $pid;
     }
 
     /**
@@ -43,13 +43,14 @@ class ProcessExecutor
     public function killProcess(int $pid): int
     {
         $process = Process::fromShellCommandline("kill -9 {$pid}", base_path());
-        $process->run();
+        $process->start();
+        $pid = $process->getPid();
         if(!$process->isSuccessful())
         {
             throw new ProcessFailedException($process);
         }
-
-        return $process->getPid();
+        $process->stop();
+        return $pid;
     }
 
     public function compileShell(
@@ -62,7 +63,7 @@ class ProcessExecutor
 
         $params  = $this->escapeParamsString($params);
         $command = Application::formatCommandString("{$command} {$params}") .
-                   " > {$output}; echo '{$uuid}' >> {$output}";
+            " > {$output}; echo '{$uuid}' >> {$output}";
 
         // As background
         return '(' . $command . ') 2>&1 &';
