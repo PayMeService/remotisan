@@ -10,5 +10,6 @@ return [
     ],
     "logger" => [
         "path" => env('REMOTISAN_LOG_PATH', storage_path('temp/')),
-    ]
+    ],
+    "show_history_records_num" => 50
 ];

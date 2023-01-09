@@ -2,11 +2,13 @@
 namespace PayMe\Remotisan;
 
 use Illuminate\Console\Application;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Request;
 use Illuminate\Support\ProcessUtils;
 use Illuminate\Support\Str;
 use PayMe\Remotisan\Exceptions\UnauthenticatedException;
+use PayMe\Remotisan\Models\RemotisanAudit;
 use Symfony\Component\Process\Process;
 
 class Remotisan
@@ -16,6 +18,8 @@ class Remotisan
     /** @var callable[] */
     private static array $authWith = [];
     private ProcessExecutor $processExecutor;
+
+    protected static $userDisplayNameGetter;
 
     /**
      * @param CommandsRepository $commandsRepo
@@ -43,9 +47,73 @@ class Remotisan
 
         $uuid = Str::uuid()->toString();
 
-        $this->processExecutor->execute($command, $params, $uuid, $this->getFilePath($uuid));
+        $pid = $this->processExecutor->execute($command, $params, $uuid, $this->getFilePath($uuid));
+        $this->audit((int)$pid, $uuid, time(), $command, $params, $this->getUserDisplayName());
 
         return $uuid;
+    }
+
+    /**
+     * @param int $pid
+     * @param string $uuid
+     * @param int $timestamp
+     * @param string $command
+     * @param string $params
+     * @param string $userDisplayName
+     * @return void
+     */
+    public function audit(int $pid, string $uuid, int $timestamp, string $command, string $params, string $userDisplayName): void
+    {
+        RemotisanAudit::create([
+            "pid"           => $pid,
+            "uuid"          => $uuid,
+            "executed_at"   => $timestamp,
+            "command"       => $command,
+            "parameters"    => $params,
+            "user_name"     => $userDisplayName,
+        ]);
+    }
+
+    /**
+     * Retrieve historical records scoped to user, ordered by executred_at desc
+     * and limit to show_history_records_num from artisan config.
+     * @return Collection
+     */
+    public function getHistoryScopedToUser(): Collection
+    {
+        return RemotisanAudit::query()
+            ->where("user_name", $this->getUserDisplayName())
+            ->orderByDesc("executed_at")
+            ->limit(config("remotisan.show_history_records_num"))
+            ->get();
+    }
+
+    /**
+     * Process killer passthru to process executor.
+     * @param int $pid
+     * @return int
+     */
+    public function killProcess(int $pid): int
+    {
+        return $this->processExecutor->killProcess($pid);
+    }
+
+    /**
+     * @return string
+     */
+    public function getUserDisplayName():string
+    {
+        $request = Request::instance();
+        return call_user_func_array(static::$userDisplayNameGetter, [$request]);
+    }
+
+    /**
+     * @param callable $userDisplayNameGetter
+     * @return void
+     */
+    public static function setUserDisplayNameGetter(callable $userDisplayNameGetter):void
+    {
+        static::$userDisplayNameGetter = $userDisplayNameGetter;
     }
 
     /**
@@ -82,14 +150,13 @@ class Remotisan
         return $path.$executionUuid.'.log';
     }
 
-
     /**
      * @param          $role
      * @param callable $callable
      *
      * @return void
      */
-    public function authWith($role, callable $callable): void
+    public static function authWith($role, callable $callable): void
     {
         static::$authWith[] = ["role" => $role, "callable" => $callable];
     }
@@ -102,9 +169,9 @@ class Remotisan
         $request = Request::instance();
 
         return collect(static::$authWith)
-            ->first(function (array $roleData) use ($request) {
-                return call_user_func_array($roleData["callable"], [$request]);
-            })["role"] ?? null;
+                   ->first(function (array $roleData) use ($request) {
+                       return call_user_func_array($roleData["callable"], [$request]);
+                   })["role"] ?? null;
     }
 
     /**

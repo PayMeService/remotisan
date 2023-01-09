@@ -11,26 +11,46 @@ namespace PayMe\Remotisan;
 use Illuminate\Console\Application;
 use Illuminate\Support\ProcessUtils;
 use Illuminate\Support\Str;
+use Symfony\Component\Process\Exception\ProcessFailedException;
 use Symfony\Component\Process\Process;
 
 class ProcessExecutor
 {
+    protected Process $process;
     /**
      * @param string $command
      * @param string $params
      *
-     * @return string
+     * @return int $PID
      */
-    public function execute(string $command, string $params, string $uuid, string $output): string
+    public function execute(string $command, string $params, string $uuid, string $output): int
     {
         $command = $this->compileShell($output, $params, $command, $uuid);
 
-        $p = Process::fromShellCommandline($command, base_path(), null, null, null);
-        $p->start();
+        $this->process = Process::fromShellCommandline($command, base_path(), null, null, null);
+        $this->process->start();
+        $pid = $this->process->getPid();
         usleep(4000);
-        $p->stop();
+        $this->process->stop();
+        return $pid;
+    }
 
-        return $uuid;
+    /**
+     * Process killer
+     * @param int $pid
+     * @return void
+     */
+    public function killProcess(int $pid): int
+    {
+        $process = Process::fromShellCommandline("kill -9 {$pid}", base_path());
+        $process->start();
+        $pid = $process->getPid();
+        if (!$process->isSuccessful()) {
+            throw new ProcessFailedException($process);
+        }
+        $process->stop();
+
+        return $pid;
     }
 
     public function compileShell(
@@ -43,7 +63,7 @@ class ProcessExecutor
 
         $params  = $this->escapeParamsString($params);
         $command = Application::formatCommandString("{$command} {$params}") .
-                   " > {$output}; echo '{$uuid}' >> {$output}";
+            " > {$output}; echo '{$uuid}' >> {$output}";
 
         // As background
         return '(' . $command . ') 2>&1 &';
