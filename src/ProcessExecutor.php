@@ -21,7 +21,7 @@ class ProcessExecutor
      * @param string $command
      * @param string $params
      *
-     * @return string
+     * @return int $PID
      */
     public function execute(string $command, string $params, string $uuid, string $output): int
     {
@@ -45,11 +45,11 @@ class ProcessExecutor
         $process = Process::fromShellCommandline("kill -9 {$pid}", base_path());
         $process->start();
         $pid = $process->getPid();
-        if(!$process->isSuccessful())
-        {
+        if (!$process->isSuccessful()) {
             throw new ProcessFailedException($process);
         }
         $process->stop();
+
         return $pid;
     }
 

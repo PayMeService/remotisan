@@ -54,14 +54,12 @@ class Remotisan
     }
 
     /**
-     * Call audit if callable provided.
-     * The package would ONLY send information known to him,
-     * the implementer shall retrieve all other data they want to audit, such as: userId or userDisplayName
-     * or anything else and log it the way they like.
-     *
      * @param int $pid
      * @param string $uuid
      * @param int $timestamp
+     * @param string $command
+     * @param string $params
+     * @param string $userDisplayName
      * @return void
      */
     public function audit(int $pid, string $uuid, int $timestamp, string $command, string $params, string $userDisplayName): void
@@ -100,6 +98,9 @@ class Remotisan
         return $this->processExecutor->killProcess($pid);
     }
 
+    /**
+     * @return string
+     */
     public function getUserDisplayName():string
     {
         $request = Request::instance();
@@ -107,7 +108,7 @@ class Remotisan
     }
 
     /**
-     * @param string $userDisplayName
+     * @param callable $userDisplayNameGetter
      * @return void
      */
     public static function setUserDisplayNameGetter(callable $userDisplayNameGetter):void
