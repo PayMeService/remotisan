@@ -53,7 +53,7 @@
                     <td>@{{log_data.command}} @{{log_data.parameters}}</td>
                     <td><span data-ng-click="readLog(log_data.uuid)" class="label label-info" style="cursor: pointer;">@{{log_data.uuid}}</span></td><!-- use same call as showing log. -->
                     <td>@{{log_data.pid}}</td>
-                    <td>@{{log_data.executed_at}}</td>
+                    <td>@{{log_data.executed_at*1000 | date: 'yyyy-MM-dd HH:mm:ss'}}</td>
                     <td>
                         <span data-ng-click="killPid(log_data.pid)" class="label label-danger" style="cursor: pointer;">Kill Process</span><!-- set history data (the pid) -->
                     </td>
