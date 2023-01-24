@@ -23,9 +23,14 @@ class Audit extends Model
     protected $unguarded = true;
     public $timestamps = false;
 
+    /**
+     * Update process status with shadow update of finished_at.
+     * @param int $status
+     * @return void
+     */
     public function updateProcessStatus(int $status): void
     {
-        if(!in_array($status, ProcessStatuses::getValuesAsArray())) {
+        if(!in_array($status, ProcessStatuses::getNotRunningStatusesArray())) {
             throw new InvalidStatusException();
         }
 

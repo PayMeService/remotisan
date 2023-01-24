@@ -15,10 +15,9 @@ class ProcessStatuses
     const FAILED = 3;
     const KILLED = 4;
 
-    static public function getValuesAsArray():array
+    static public function getNotRunningStatusesArray(): array
     {
         return [
-            ProcessStatuses::RUNNING,
             ProcessStatuses::COMPLETED,
             ProcessStatuses::FAILED,
             ProcessStatuses::KILLED,
