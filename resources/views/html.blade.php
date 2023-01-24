@@ -49,11 +49,13 @@
                 <tbody class="table-striped table-hover">
                 <tr data-ng-repeat="(key, log_data) in historyRecords"> <!-- foreach loop -->
                     <td>@{{log_data.id}}</td>
-                    <td>@{{log_data.user_name}}</td>
+                    <td>@{{log_data.user_identifier}}</td>
                     <td>@{{log_data.command}} @{{log_data.parameters}}</td>
                     <td><span data-ng-click="readLog(log_data.uuid)" class="label label-info" style="cursor: pointer;">@{{log_data.uuid}}</span></td><!-- use same call as showing log. -->
                     <td>@{{log_data.pid}}</td>
+                    <td>@{{log_data.process_status}}</td>
                     <td>@{{log_data.executed_at*1000 | date: 'yyyy-MM-dd HH:mm:ss'}}</td>
+                    <td>@{{log_data.finished_at*1000 | date: 'yyyy-MM-dd HH:mm:ss'}}</td>
                     <td>
                         <span data-ng-click="killProcess(log_data.uuid)" class="label label-danger" style="cursor: pointer;">Kill Process</span><!-- set history data (the pid) -->
                     </td>

@@ -10,7 +10,7 @@ use PayMe\Remotisan\Exceptions\InvalidStatusException;
  * @property integer    id
  * @property integer    pid
  * @property string     uuid
- * @property integer    user_name
+ * @property integer    user_identifier
  * @property string     command
  * @property string     parameters
  * @property integer    executed_at

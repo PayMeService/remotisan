@@ -6,9 +6,9 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use PayMe\Remotisan\CommandsRepository;
+use PayMe\Remotisan\Exceptions\ProcessFailedException;
 use PayMe\Remotisan\Models\Audit;
 use PayMe\Remotisan\Remotisan;
-use Symfony\Component\Process\Exception\ProcessFailedException;
 
 class RemotisanController extends Controller {
 
@@ -89,7 +89,7 @@ class RemotisanController extends Controller {
     public function history(Request $request): Collection
     {
         return Audit::query()
-            ->where("user_name", $this->getUserIdentifier())
+            ->where("user_identifier", $this->getUserIdentifier())
             ->orderByDesc("executed_at")
             ->limit(config("remotisan.show_history_records_num"))
             ->get();

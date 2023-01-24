@@ -71,7 +71,7 @@ class Remotisan
             "executed_at"   => $timestamp,
             "command"       => $command,
             "parameters"    => $params,
-            "user_name"     => $userIdentifier,
+            "user_identifier"=> $userIdentifier,
             "process_status"=> $status,
         ]);
     }
@@ -85,8 +85,10 @@ class Remotisan
     {
         $auditRecord = Audit::getByUuid($uuid);
 
-        if (!$auditRecord) {
-            throw new UnauthenticatedException();
+        if (!$auditRecord || $auditRecord->user_identifier != $this->getUserIdentifier()
+        || $auditRecord->process_status !== ProcessStatuses::RUNNING)
+        {
+            throw new UnauthenticatedException("Action Not Allowed.", 404);
         }
 
         $pid = $this->processExecutor->killProcess($auditRecord->pid);
