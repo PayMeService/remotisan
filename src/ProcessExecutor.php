@@ -11,7 +11,7 @@ namespace PayMe\Remotisan;
 use Illuminate\Console\Application;
 use Illuminate\Support\ProcessUtils;
 use Illuminate\Support\Str;
-use Symfony\Component\Process\Exception\ProcessFailedException;
+use PayMe\Remotisan\Exceptions\ProcessFailedException;
 use Symfony\Component\Process\Process;
 
 class ProcessExecutor

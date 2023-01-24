@@ -13,14 +13,15 @@ class CreateRemotisanAuditTable extends Migration
      */
     public function up()
     {
-        Schema::create(app(\PayMe\Remotisan\Models\RemotisanAudit::class)->getTable(), function (Blueprint $table) {
+        Schema::create(app(\PayMe\Remotisan\Models\Audit::class)->getTable(), function (Blueprint $table) {
             $table->increments("id");
             $table->integer("pid")->unsigned();
             $table->string("uuid")->unique();
-            $table->string("user_name")->index();
+            $table->string("user_name")->nullable()->index();
             $table->string("command");
             $table->string("parameters");
             $table->integer("executed_at")->unsigned()->index();
+            $table->tinyInteger("process_status")->unsigned();
         });
     }
 
@@ -31,6 +32,6 @@ class CreateRemotisanAuditTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists(app(\PayMe\Remotisan\Models\RemotisanAudit::class)->getTable());
+        Schema::dropIfExists(app(\PayMe\Remotisan\Models\Audit::class)->getTable());
     }
 }

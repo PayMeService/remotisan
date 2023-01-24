@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use PayMe\Remotisan\CommandsRepository;
-use PayMe\Remotisan\Exceptions\UnauthenticatedException;
+use PayMe\Remotisan\Models\Audit;
 use PayMe\Remotisan\Remotisan;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 
@@ -74,7 +74,7 @@ class RemotisanController extends Controller {
     public function killProcess(Request $request): array
     {
         try {
-            $pid = $this->rt->killProcess($request->pid);
+            $pid = $this->rt->killProcess($request->uuid);
         } catch (ProcessFailedException $e) {
             $pid = null;
         }
@@ -88,7 +88,11 @@ class RemotisanController extends Controller {
      */
     public function history(Request $request): Collection
     {
-        return $this->rt->getHistoryScopedToUser();
+        return Audit::query()
+            ->where("user_name", $this->getUserIdentifier())
+            ->orderByDesc("executed_at")
+            ->limit(config("remotisan.show_history_records_num"))
+            ->get();
     }
 
     /**

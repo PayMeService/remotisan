@@ -8,7 +8,8 @@ use Illuminate\Support\Facades\Request;
 use Illuminate\Support\ProcessUtils;
 use Illuminate\Support\Str;
 use PayMe\Remotisan\Exceptions\UnauthenticatedException;
-use PayMe\Remotisan\Models\RemotisanAudit;
+use PayMe\Remotisan\Models\ProcessStatuses;
+use PayMe\Remotisan\Models\Audit;
 use Symfony\Component\Process\Process;
 
 class Remotisan
@@ -19,7 +20,7 @@ class Remotisan
     private static array $authWith = [];
     private ProcessExecutor $processExecutor;
 
-    protected static $userDisplayNameGetter;
+    protected static $userIdentifierGetter;
 
     /**
      * @param CommandsRepository $commandsRepo
@@ -48,7 +49,7 @@ class Remotisan
         $uuid = Str::uuid()->toString();
 
         $pid = $this->processExecutor->execute($command, $params, $uuid, $this->getFilePath($uuid));
-        $this->audit((int)$pid, $uuid, time(), $command, $params, $this->getUserDisplayName());
+        $this->audit((int)$pid, $uuid, time(), $command, $params, $this->getUserIdentifier(), ProcessStatuses::RUNNING);
 
         return $uuid;
     }
@@ -59,61 +60,39 @@ class Remotisan
      * @param int $timestamp
      * @param string $command
      * @param string $params
-     * @param string $userDisplayName
+     * @param string $userIdentifier
      * @return void
      */
-    public function audit(int $pid, string $uuid, int $timestamp, string $command, string $params, string $userDisplayName): void
+    public function audit(int $pid, string $uuid, int $timestamp, string $command, string $params, string $userIdentifier, int $status): void
     {
-        RemotisanAudit::create([
+        Audit::create([
             "pid"           => $pid,
             "uuid"          => $uuid,
             "executed_at"   => $timestamp,
             "command"       => $command,
             "parameters"    => $params,
-            "user_name"     => $userDisplayName,
+            "user_name"     => $userIdentifier,
+            "process_status"=> $status,
         ]);
     }
 
     /**
-     * Retrieve historical records scoped to user, ordered by executred_at desc
-     * and limit to show_history_records_num from artisan config.
-     * @return Collection
-     */
-    public function getHistoryScopedToUser(): Collection
-    {
-        return RemotisanAudit::query()
-            ->where("user_name", $this->getUserDisplayName())
-            ->orderByDesc("executed_at")
-            ->limit(config("remotisan.show_history_records_num"))
-            ->get();
-    }
-
-    /**
      * Process killer passthru to process executor.
-     * @param int $pid
+     * @param string $uuid
      * @return int
      */
-    public function killProcess(int $pid): int
+    public function killProcess(string $uuid): int
     {
-        return $this->processExecutor->killProcess($pid);
-    }
+        $auditRecord = Audit::getByUuid($uuid);
 
-    /**
-     * @return string
-     */
-    public function getUserDisplayName():string
-    {
-        $request = Request::instance();
-        return call_user_func_array(static::$userDisplayNameGetter, [$request]);
-    }
+        if (!$auditRecord) {
+            throw new UnauthenticatedException();
+        }
 
-    /**
-     * @param callable $userDisplayNameGetter
-     * @return void
-     */
-    public static function setUserDisplayNameGetter(callable $userDisplayNameGetter):void
-    {
-        static::$userDisplayNameGetter = $userDisplayNameGetter;
+        $pid = $this->processExecutor->killProcess($auditRecord->pid);
+        Audit::updateProcessStatusByUuid($uuid, ProcessStatuses::KILLED);
+
+        return $pid;
     }
 
     /**
@@ -156,9 +135,32 @@ class Remotisan
      *
      * @return void
      */
-    public static function authWith($role, callable $callable): void
+    public function authWith($role, callable $callable): void
     {
         static::$authWith[] = ["role" => $role, "callable" => $callable];
+    }
+
+    /**
+     * @return string
+     */
+    public function getUserIdentifier(): ?string
+    {
+        $callable = static::$userIdentifierGetter;
+        if($callable === null) {
+            return null;
+        }
+
+        $request = Request::instance();
+        return call_user_func_array(static::$userIdentifierGetter, [$request]);
+    }
+
+    /**
+     * @param callable $userIdentifierGetter
+     * @return void
+     */
+    public function setUserIdentifierGetter(callable $userIdentifierGetter):void
+    {
+        static::$userIdentifierGetter = $userIdentifierGetter;
     }
 
     /**
