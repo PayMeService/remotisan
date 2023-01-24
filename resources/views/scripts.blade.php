@@ -9,7 +9,7 @@ $scope.historyRecords = [];
 $scope.command = null;
 $scope.params = '';
 $scope.$location = {};
-$scope.killPid = null;
+$scope.killUuid = null;
 $scope.showHistory = false;
 $scope.log = {
 uuid: null,
@@ -64,12 +64,12 @@ console.log(response);
 });
 };
 
-$scope.killPid = function(pid){
-$scope.killPid = pid;
-$http.post($scope.baseUrl + "/kill/" + $scope.killPid)
+$scope.killProcess = function(uuid){
+$scope.killUuid = uuid;
+$http.post($scope.baseUrl + "/kill/" + $scope.killUuid)
 .then(function(response){
 console.log("Response success", response.data);
-$scope.killPid = null;
+$scope.killUuid = null;
 alert("Process killed");
 },function(response){
 console.log(response);
