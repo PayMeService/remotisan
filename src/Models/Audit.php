@@ -13,7 +13,9 @@ use PayMe\Remotisan\Exceptions\InvalidStatusException;
  * @property integer    user_identifier
  * @property string     command
  * @property string     parameters
+ * @property integer    process_status
  * @property integer    executed_at
+ * @property integer    finished_at
  */
 class Audit extends Model
 {
@@ -28,6 +30,7 @@ class Audit extends Model
         }
         $record = static::getByUuid($uuid);
         $record->process_status = $status;
+        $record->finished_at    = time();
         $record->save();
     }
 
