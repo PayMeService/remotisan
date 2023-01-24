@@ -5,12 +5,6 @@ use Throwable;
 
 class ProcessFailedException extends \RuntimeException
 {
-    public function __construct(
-        $message = "Process execution failed",
-        $code = 0,
-        Throwable $previous = null
-    )
-    {
-        parent::__construct($message, $code, $previous);
-    }
+    protected $message = "Process execution failed";
+    protected $code = 0;
 }

@@ -5,12 +5,6 @@ use Throwable;
 
 class InvalidStatusException extends \RuntimeException
 {
-    public function __construct(
-        $message = "Invalid status provided",
-        $code = 0,
-        Throwable $previous = null
-    )
-    {
-        parent::__construct($message, $code, $previous);
-    }
+    protected $message = "Invalid status provided";
+    protected $code = 0;
 }

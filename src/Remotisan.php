@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Request;
 use Illuminate\Support\ProcessUtils;
 use Illuminate\Support\Str;
+use PayMe\Remotisan\Exceptions\RemotisanException;
 use PayMe\Remotisan\Exceptions\UnauthenticatedException;
 use PayMe\Remotisan\Models\ProcessStatuses;
 use PayMe\Remotisan\Models\Audit;
@@ -85,10 +86,16 @@ class Remotisan
     {
         $auditRecord = Audit::getByUuid($uuid);
 
-        if (!$auditRecord || $auditRecord->user_identifier != $this->getUserIdentifier()
-        || $auditRecord->process_status !== ProcessStatuses::RUNNING)
-        {
-            throw new UnauthenticatedException("Action Not Allowed.", 404);
+        if (!$auditRecord) {
+            throw new RemotisanException("Action Not Allowed.", 404);
+        }
+
+        if ($auditRecord->user_identifier != $this->getUserIdentifier()) {
+            throw new RemotisanException("Action Not Allowed.", 401);
+        }
+
+        if ($auditRecord->process_status !== ProcessStatuses::RUNNING) {
+            throw new RemotisanException("Action Not Allowed.", 422);
         }
 
         $pid = $this->processExecutor->killProcess($auditRecord->pid);

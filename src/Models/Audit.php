@@ -39,8 +39,13 @@ class Audit extends Model
         $this->save();
     }
 
+    /**
+     * Get audit record by UUID or null on not found.
+     * @param string $uuid
+     * @return Audit|null
+     */
     static public function getByUuid(string $uuid): ?Audit
     {
-        return static::query()->where("uuid", $uuid)->get()->first();
+        return static::query()->where("uuid", $uuid)->first();
     }
 }
