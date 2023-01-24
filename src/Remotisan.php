@@ -92,7 +92,7 @@ class Remotisan
         }
 
         $pid = $this->processExecutor->killProcess($auditRecord->pid);
-        Audit::updateProcessStatusByUuid($uuid, ProcessStatuses::KILLED);
+        $auditRecord->updateProcessStatus(ProcessStatuses::KILLED);
 
         return $pid;
     }

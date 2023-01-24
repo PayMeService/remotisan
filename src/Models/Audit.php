@@ -23,18 +23,18 @@ class Audit extends Model
     protected $unguarded = true;
     public $timestamps = false;
 
-    static public function updateProcessStatusByUuid(string $uuid, int $status): void
+    public function updateProcessStatus(int $status): void
     {
         if(!in_array($status, ProcessStatuses::getValuesAsArray())) {
             throw new InvalidStatusException();
         }
-        $record = static::getByUuid($uuid);
-        $record->process_status = $status;
-        $record->finished_at    = time();
-        $record->save();
+
+        $this->process_status = $status;
+        $this->finished_at    = time();
+        $this->save();
     }
 
-    static public function getByUuid(string $uuid)
+    static public function getByUuid(string $uuid): ?Audit
     {
         return static::query()->where("uuid", $uuid)->get()->first();
     }
