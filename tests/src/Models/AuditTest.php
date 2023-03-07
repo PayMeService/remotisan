@@ -1,11 +1,11 @@
 <?php
 
-namespace PayMe\Remotisan\Tests;
+namespace PayMe\Remotisan\Tests\src\Models;
 
 use Orchestra\Testbench\TestCase as Orchestra;
 use PayMe\Remotisan\RemotisanServiceProvider;
 
-class TestCase extends Orchestra
+class AuditTest extends Orchestra
 {
     protected function getPackageProviders($app)
     {

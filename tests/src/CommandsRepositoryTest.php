@@ -1,11 +1,10 @@
 <?php
 
-namespace PayMe\Remotisan\Tests;
+namespace PayMe\Remotisan\Tests\src;
 
 use Illuminate\Support\Str;
 use PayMe\Remotisan\CommandData;
 use PayMe\Remotisan\CommandsRepository;
-use PayMe\Remotisan\ProcessExecutor;
 
 class CommandsRepositoryTest extends TestCase
 {
