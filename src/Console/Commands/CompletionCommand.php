@@ -10,7 +10,6 @@ namespace PayMe\Remotisan\Console\Commands;
 
 use Illuminate\Console\Command;
 use PayMe\Remotisan\Models\Audit;
-use PayMe\Remotisan\Models\ProcessStatuses;
 
 class CompletionCommand extends Command
 {

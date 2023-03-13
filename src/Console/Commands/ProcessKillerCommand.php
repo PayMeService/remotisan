@@ -6,15 +6,15 @@
  * Time: {14:36}
  */
 
-namespace PayMe\Remotisan\Jobs;
+namespace PayMe\Remotisan\Console\Commands;
 
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
 use PayMe\Remotisan\Exceptions\RemotisanException;
 use PayMe\Remotisan\Remotisan;
 
-class ProcessKillerJob implements ShouldQueue
+class ProcessKillerCommand extends Command
 {
     use Queueable;
 
@@ -23,6 +23,7 @@ class ProcessKillerJob implements ShouldQueue
     public function __construct(Remotisan $remotisan)
     {
         $this->remotisan = $remotisan;
+        parent::__construct();
     }
     public function handle()
     {
