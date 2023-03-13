@@ -117,13 +117,10 @@ class Remotisan
         }
 
         $cacheKey = $this->makeCacheKey();
-        $values = Cache::get($cacheKey);
-        if ($values !== (array)$values) {
-            $values = [];
-        }
+        $values = collect(Cache::get($cacheKey) ?? []);
 
-        $values[] = $uuid;
-        Cache::put($cacheKey, $uuid);
+        $values->push($uuid);
+        Cache::put($cacheKey, $values->all());
         return $uuid;
     }
 
@@ -155,21 +152,23 @@ class Remotisan
         }
 
         $auditRecord->markKilled();
-
         $cacheKey = $this->makeCacheKey();
-        $values = Cache::get($cacheKey);
-        if ($values !== (array)$values) {
-            $values = [];
-        }
+        $values = collect(Cache::get($cacheKey) ?? []);
 
-        if ($key = array_search($uuid, $values)) {
-            unset($values[$key]);
-            Cache::put($cacheKey, $values);
+        if ($key = $values->search($uuid, true)) {
+            if($key !== false) {
+                $values->forget($key);
+                Cache::put($cacheKey, $values->all());
+            }
         }
 
         return $uuid;
     }
 
+    /**
+     * Compose cache killing key
+     * @return string
+     */
     public function makeCacheKey(): string
     {
         return implode(":", [config("remotisan.killing_key"), $this->getInstanceUuid()]);

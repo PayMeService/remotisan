@@ -27,7 +27,7 @@ class ProcessKillerJob implements ShouldQueue
     public function handle()
     {
         $cacheKey = $this->remotisan->makeCacheKey();
-        $jobsUuidList = Cache::get($cacheKey);
+        $jobsUuidList = Cache::get($cacheKey) ?? [];
         $killedJobs = [];
 
         try {
@@ -41,9 +41,8 @@ class ProcessKillerJob implements ShouldQueue
         } catch (RemotisanException $e) {
             // tumbled at some job.
         } finally {
-            $refreshedUuids = Cache::get($cacheKey);
-            $jobsToKill = array_diff($refreshedUuids, $killedJobs);
-            Cache::put($cacheKey, $jobsToKill);
+            $refreshedUuids = collect(Cache::get($cacheKey) ?? []);
+            Cache::put($cacheKey, $refreshedUuids->diff($killedJobs)->all());
         }
     }
 }
