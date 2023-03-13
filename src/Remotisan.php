@@ -103,6 +103,10 @@ class Remotisan
             throw new UnauthenticatedException("Action Not Allowed.", 422);
         }
 
+        if ($auditRecord == $this->instance_uuid) { // if same instance, kill right away.
+            return $this->killProcess($uuid);
+        }
+
         $cacheKey = $this->makeCacheKey();
         $values = Cache::get($cacheKey);
         if ($values !== (array)$values) {
