@@ -16,6 +16,9 @@ use PayMe\Remotisan\Models\Audit;
 class Remotisan
 {
 
+    const INSTANCE_VIOLATION_MSG    = "Instance violation";
+    const RIGHT_VIOLATION_MSG       = "Rights violation";
+
     private CommandsRepository $commandsRepo;
     /** @var callable[] */
     private static array $authWith = [];
@@ -124,11 +127,11 @@ class Remotisan
         }
 
         if ($this->instance_uuid !== $auditRecord->getInstanceUuid()) {
-            throw new RemotisanException("Action Not Allowed.", 401);
+            return static::INSTANCE_VIOLATION_MSG;
         }
 
         if (!$this->processExecutor->isOwnedProcess($auditRecord)) {
-            throw new RemotisanException("Action Not Allowed.", 401);
+            return static::RIGHT_VIOLATION_MSG;
         }
 
         $dateTime = (string)Carbon::parse();
