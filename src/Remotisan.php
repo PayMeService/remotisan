@@ -190,7 +190,6 @@ class Remotisan
         if ($lines > 1 && $content[$lines-1] == $executionUuid) {
             array_pop($content);
             $isEnded = true;
-            Artisan::call("remotisan:complete {$executionUuid}");
         }
 
         return [
