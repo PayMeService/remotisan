@@ -92,15 +92,15 @@ class Remotisan
         }
 
         if (!$auditRecord) {
-            throw new RemotisanException("Action Not Allowed.", 404);
+            throw new UnauthenticatedException("Action Not Allowed.", 404);
         }
 
         if ($auditRecord->user_identifier != $this->getUserIdentifier()) {
-            throw new RemotisanException("Action Not Allowed.", 401);
+            throw new UnauthenticatedException("Action Not Allowed.", 401);
         }
 
         if ($auditRecord->process_status !== ProcessStatuses::RUNNING) {
-            throw new RemotisanException("Action Not Allowed.", 422);
+            throw new UnauthenticatedException("Action Not Allowed.", 422);
         }
 
         $cacheKey = $this->makeCacheKey();
