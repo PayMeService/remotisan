@@ -87,7 +87,7 @@ class ProcessExecutor
         }
         $process->stop();
 
-        return $pid;
+        return (bool)$pid;
     }
 
     public function compileShell(
