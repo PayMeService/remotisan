@@ -1,9 +1,7 @@
 <?php
 namespace PayMe\Remotisan\Exceptions;
 
-use Throwable;
-
-class InvalidStatusException extends \RuntimeException
+class InvalidStatusException extends RemotisanException
 {
     protected $message = "Invalid status provided";
     protected $code = 0;

@@ -1,9 +1,7 @@
 <?php
 namespace PayMe\Remotisan\Exceptions;
 
-use Throwable;
-
-class ProcessFailedException extends \RuntimeException
+class ProcessFailedException extends RemotisanException
 {
     protected $message = "Process execution failed";
     protected $code = 0;
