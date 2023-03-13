@@ -41,6 +41,33 @@ class Audit extends Model
     }
 
     /**
+     * Facade to set status killed transparently to developers.
+     * @return void
+     */
+    public function markKilled(): void
+    {
+        $this->updateProcessStatus(ProcessStatuses::KILLED);
+    }
+
+    /**
+     * Facade to set status failed transparently to developers.
+     * @return void
+     */
+    public function markFailed(): void
+    {
+        $this->updateProcessStatus(ProcessStatuses::FAILED);
+    }
+
+    /**
+     * Facade to set status killed transparently to developers.
+     * @return void
+     */
+    public function markCompleted(): void
+    {
+        $this->process_status = ProcessStatuses::COMPLETED;
+    }
+
+    /**
      * Get audit record by UUID or null on not found.
      * @param string $uuid
      * @return Audit|null

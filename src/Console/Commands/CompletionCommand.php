@@ -44,6 +44,6 @@ class CompletionCommand extends Command
     public function handle()
     {
         $auditRecord = Audit::getByUuid($this->argument("uuid"));
-        $auditRecord->updateProcessStatus(ProcessStatuses::COMPLETED);
+        $auditRecord->markCompleted();
     }
 }

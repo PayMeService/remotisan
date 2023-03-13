@@ -138,7 +138,7 @@ class Remotisan
         $this->processExecutor->appendInputToFile($this->getFilePath($uuid), "PROCESS KILLED AT " . $dateTime);
 
         $this->processExecutor->killProcess($auditRecord);
-        $auditRecord->updateProcessStatus(ProcessStatuses::KILLED);
+        $auditRecord->markKilled();
 
         $cacheKey = $this->makeCacheKey();
         $values = Cache::get($cacheKey);
