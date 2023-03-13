@@ -11,5 +11,8 @@ return [
     "logger" => [
         "path" => env('REMOTISAN_LOG_PATH', storage_path('temp/')),
     ],
-    "show_history_records_num" => 50
+    "show_history_records_num"  => 50,
+    "server_guid_key"           => "remotisan:server_guid",
+    "killing_key"               => "remotisan:killing",
+    "allow_process_kill"        => true,
 ];

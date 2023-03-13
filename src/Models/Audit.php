@@ -10,6 +10,7 @@ use PayMe\Remotisan\Exceptions\InvalidStatusException;
  * @property integer    id
  * @property integer    pid
  * @property string     uuid
+ * @property string     instance_uuid
  * @property integer    user_identifier
  * @property string     command
  * @property string     parameters
@@ -47,5 +48,25 @@ class Audit extends Model
     static public function getByUuid(string $uuid): ?Audit
     {
         return static::query()->where("uuid", $uuid)->first();
+    }
+
+    public function getPid(): int
+    {
+        return $this->pid;
+    }
+
+    public function getCommand(): string
+    {
+        return $this->command;
+    }
+
+    public function getInstanceUuid(): string
+    {
+        return $this->instance_uuid;
+    }
+
+    public function getUuid(): string
+    {
+        return $this->uuid;
     }
 }

@@ -1,17 +1,17 @@
 <?php
 namespace PayMe\Remotisan;
 
-use Illuminate\Console\Application;
-use Illuminate\Database\Eloquent\Collection;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Request;
-use Illuminate\Support\ProcessUtils;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use PayMe\Remotisan\Exceptions\RemotisanException;
 use PayMe\Remotisan\Exceptions\UnauthenticatedException;
 use PayMe\Remotisan\Models\ProcessStatuses;
 use PayMe\Remotisan\Models\Audit;
-use Symfony\Component\Process\Process;
 
 class Remotisan
 {
@@ -23,6 +23,8 @@ class Remotisan
 
     protected static $userIdentifierGetter;
 
+    protected string $instance_uuid;
+
     /**
      * @param CommandsRepository $commandsRepo
      * @param ProcessExecutor    $processExecutor
@@ -31,6 +33,7 @@ class Remotisan
     {
         $this->commandsRepo = $commandsRepo;
         $this->processExecutor = $processExecutor;
+        $this->instance_uuid = Storage::disk("local")->get("remotisan_server_guid");
     }
 
     /**
@@ -50,7 +53,7 @@ class Remotisan
         $uuid = Str::uuid()->toString();
 
         $pid = $this->processExecutor->execute($command, $params, $uuid, $this->getFilePath($uuid));
-        $this->audit((int)$pid, $uuid, time(), $command, $params, $this->getUserIdentifier(), ProcessStatuses::RUNNING);
+        $this->audit((int)$pid, $uuid, $this->instance_uuid, time(), $command, $params, $this->getUserIdentifier(), ProcessStatuses::RUNNING);
 
         return $uuid;
     }
@@ -64,11 +67,12 @@ class Remotisan
      * @param string $userIdentifier
      * @return void
      */
-    public function audit(int $pid, string $uuid, int $timestamp, string $command, string $params, string $userIdentifier, int $status): void
+    public function audit(int $pid, string $uuid, string $instanceUuid, int $timestamp, string $command, string $params, string $userIdentifier, int $status): void
     {
         Audit::create([
             "pid"           => $pid,
             "uuid"          => $uuid,
+            "instance_uuid" => $instanceUuid,
             "executed_at"   => $timestamp,
             "command"       => $command,
             "parameters"    => $params,
@@ -77,14 +81,12 @@ class Remotisan
         ]);
     }
 
-    /**
-     * Process killer passthru to process executor.
-     * @param string $uuid
-     * @return int
-     */
-    public function killProcess(string $uuid): int
+    public function sendKillSignal(string $uuid): string
     {
-        $auditRecord = Audit::getByUuid($uuid);
+        $auditRecord = null;
+        if(config("remotisan.allow_process_kill", false) === true) {
+            $auditRecord = Audit::getByUuid($uuid);
+        }
 
         if (!$auditRecord) {
             throw new RemotisanException("Action Not Allowed.", 404);
@@ -98,10 +100,60 @@ class Remotisan
             throw new RemotisanException("Action Not Allowed.", 422);
         }
 
-        $pid = $this->processExecutor->killProcess($auditRecord->pid);
+        $cacheKey = $this->makeCacheKey();
+        $values = Cache::get($cacheKey);
+        if ($values !== (array)$values) {
+            $values = [];
+        }
+
+        $values[] = $uuid;
+        Cache::put($cacheKey, $uuid);
+        return $uuid;
+    }
+
+    /**
+     * Process killer passthru to process executor.
+     * @param string $uuid
+     * @return int
+     */
+    public function killProcess(string $uuid): string
+    {
+        $auditRecord = null;
+        if (config("remotisan.allow_process_kill", false) === true) {
+            $auditRecord = Audit::getByUuid($uuid);
+        }
+
+        if ($this->instance_uuid !== $auditRecord->getInstanceUuid()) {
+            throw new RemotisanException("Action Not Allowed.", 401);
+        }
+
+        if (!$this->processExecutor->isOwnedProcess($auditRecord)) {
+            throw new RemotisanException("Action Not Allowed.", 401);
+        }
+
+        $dateTime = (string)Carbon::parse();
+        $this->processExecutor->appendInputToFile($this->getFilePath($uuid), "PROCESS KILLED AT " . $dateTime);
+
+        $this->processExecutor->killProcess($auditRecord);
         $auditRecord->updateProcessStatus(ProcessStatuses::KILLED);
 
-        return $pid;
+        $cacheKey = $this->makeCacheKey();
+        $values = Cache::get($cacheKey);
+        if ($values !== (array)$values) {
+            $values = [];
+        }
+
+        if ($key = array_search($uuid, $values)) {
+            unset($values[$key]);
+            Cache::put($cacheKey, $values);
+        }
+
+        return $uuid;
+    }
+
+    public function makeCacheKey(): string
+    {
+        return implode(":", [config("remotisan.killing_key"), $this->instance_uuid]);
     }
 
     /**
@@ -115,10 +167,13 @@ class Remotisan
         $content = explode(PHP_EOL, rtrim(File::get($this->getFilePath($executionUuid))));
         $lines = count($content);
         $isEnded = false;
+
         if ($lines > 1 && $content[$lines-1] == $executionUuid) {
             array_pop($content);
             $isEnded = true;
+            Artisan::call("remotisan:complete {$executionUuid}");
         }
+
         return [
             "content" => $content,
             "isEnded" => $isEnded

@@ -3,6 +3,7 @@
 namespace PayMe\Remotisan;
 
 use Illuminate\Support\ServiceProvider;
+use PayMe\Remotisan\Console\Commands\CompletionCommand;
 
 class RemotisanServiceProvider extends ServiceProvider
 {
@@ -26,6 +27,8 @@ class RemotisanServiceProvider extends ServiceProvider
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'remotisan');
 
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
+
+        $this->commands([CompletionCommand::class]);
     }
 
     /**

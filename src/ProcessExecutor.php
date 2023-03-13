@@ -12,6 +12,7 @@ use Illuminate\Console\Application;
 use Illuminate\Support\ProcessUtils;
 use Illuminate\Support\Str;
 use PayMe\Remotisan\Exceptions\ProcessFailedException;
+use PayMe\Remotisan\Models\Audit;
 use Symfony\Component\Process\Process;
 
 class ProcessExecutor
@@ -36,13 +37,49 @@ class ProcessExecutor
     }
 
     /**
+     * Check process existence and belongs to artisan before killing.
+     * @param Audit $audit
+     * @return bool
+     */
+    public function isOwnedProcess(Audit $audit): bool
+    {
+        $process = Process::fromShellCommandline("ps aux | grep \"{$audit->getPid()}\" | grep {$audit->command}", base_path());
+        $process->enableOutput();
+        $process->run();
+        usleep(4000);
+        $output = explode("\n", $process->getOutput());
+        $process->stop();
+
+        return count($output) > 1;
+    }
+
+    /**
      * Process killer
      * @param int $pid
      * @return void
      */
-    public function killProcess(int $pid): int
+    public function killProcess(Audit $auditRecord): int
     {
-        $process = Process::fromShellCommandline("kill -9 {$pid}", base_path());
+        $process = Process::fromShellCommandline("kill -9 {$auditRecord->getPid()}", base_path());
+        $process->start();
+        $pid = $process->getPid();
+        if (!$process->isSuccessful()) {
+            throw new ProcessFailedException($process);
+        }
+        $process->stop();
+
+        return $pid;
+    }
+
+    /**
+     * Append input to file.
+     * @param $filePath
+     * @param $input
+     * @return int
+     */
+    public function appendInputToFile($filePath, $input): int
+    {
+        $process = Process::fromShellCommandline("echo \"{$input}\" >> {$filePath}", base_path());
         $process->start();
         $pid = $process->getPid();
         if (!$process->isSuccessful()) {
@@ -63,7 +100,7 @@ class ProcessExecutor
 
         $params  = $this->escapeParamsString($params);
         $command = Application::formatCommandString("{$command} {$params}") .
-            " > {$output}; echo '{$uuid}' >> {$output}";
+            " > {$output}; echo '{$uuid}' >> {$output}; php artisan remotisan:complete {$uuid}";
 
         // As background
         return '(' . $command . ') 2>&1 &';

@@ -48,6 +48,11 @@
             }
         }
     },
+    "scripts": {
+        "post-install-cmd": [
+            "PayMe\\Remotisan\\ServerRegistration::register"
+        ]
+    },
     "minimum-stability": "dev",
     "prefer-stable": true
 }

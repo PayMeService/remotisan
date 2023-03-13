@@ -8,6 +8,6 @@ Route::middleware('web')
     Route::get('/commands', [RemotisanController::class, "commands"]);
     Route::post('/execute', [RemotisanController::class, "execute"]);
     Route::get('/execute/{executionUuid}', [RemotisanController::class, "read"]);
-    Route::post('/kill/{uuid}', [RemotisanController::class, "killProcess"]);
+    Route::post('/kill/{uuid}', [RemotisanController::class, "sendKillSignal"]);
     Route::get('/history', [RemotisanController::class, "history"]);
 });
