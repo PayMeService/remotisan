@@ -18,6 +18,6 @@ class ServerRegistration
     {
         $uuid = Str::uuid()->toString();
         Storage::disk("local")->put("remotisan_server_guid", $uuid);
-        Cache::put(implode(":", [config("remotisan.killing_key"), $uuid]), "");
+        Cache::put(implode(":", [config("remotisan.killing_key"), $uuid]), []);
     }
 }

@@ -18,6 +18,7 @@ class Remotisan
 
     const INSTANCE_VIOLATION_MSG    = "Instance violation";
     const RIGHT_VIOLATION_MSG       = "Rights violation";
+    const KILL_FAILED_MSG           = "Kill failed";
 
     private CommandsRepository $commandsRepo;
     /** @var callable[] */
@@ -36,7 +37,15 @@ class Remotisan
     {
         $this->commandsRepo = $commandsRepo;
         $this->processExecutor = $processExecutor;
-        $this->instance_uuid = Storage::disk("local")->get("remotisan_server_guid");
+    }
+
+    public function getInstanceUuid():string
+    {
+        if (!$this->instance_uuid) {
+            $this->instance_uuid = Storage::disk("local")->get("remotisan_server_guid");
+        }
+
+        return $this->instance_uuid;
     }
 
     /**
@@ -56,7 +65,7 @@ class Remotisan
         $uuid = Str::uuid()->toString();
 
         $pid = $this->processExecutor->execute($command, $params, $uuid, $this->getFilePath($uuid));
-        $this->audit((int)$pid, $uuid, $this->instance_uuid, time(), $command, $params, $this->getUserIdentifier(), ProcessStatuses::RUNNING);
+        $this->audit((int)$pid, $uuid, $this->getInstanceUuid(), time(), $command, $params, $this->getUserIdentifier(), ProcessStatuses::RUNNING);
 
         return $uuid;
     }
@@ -103,7 +112,7 @@ class Remotisan
             throw new UnauthenticatedException("Action Not Allowed.", 422);
         }
 
-        if ($auditRecord == $this->instance_uuid) { // if same instance, kill right away.
+        if ($auditRecord == $this->getInstanceUuid()) { // if same instance, kill right away.
             return $this->killProcess($uuid);
         }
 
@@ -139,9 +148,12 @@ class Remotisan
         }
 
         $dateTime = (string)Carbon::parse();
-        $this->processExecutor->appendInputToFile($this->getFilePath($uuid), "PROCESS KILLED AT " . $dateTime);
+        $this->processExecutor->appendInputToFile($this->getFilePath($uuid), "\nPROCESS KILLED AT " . $dateTime . "\n");
 
-        $this->processExecutor->killProcess($auditRecord);
+        if (!$this->processExecutor->killProcess($auditRecord)) {
+            return static::KILL_FAILED_MSG;
+        }
+
         $auditRecord->markKilled();
 
         $cacheKey = $this->makeCacheKey();
@@ -160,7 +172,7 @@ class Remotisan
 
     public function makeCacheKey(): string
     {
-        return implode(":", [config("remotisan.killing_key"), $this->instance_uuid]);
+        return implode(":", [config("remotisan.killing_key"), $this->getInstanceUuid()]);
     }
 
     /**

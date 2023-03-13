@@ -58,7 +58,7 @@ class ProcessExecutor
      * @param int $pid
      * @return void
      */
-    public function killProcess(Audit $auditRecord): int
+    public function killProcess(Audit $auditRecord): bool
     {
         $process = Process::fromShellCommandline("kill -9 {$auditRecord->getPid()}", base_path());
         $process->start();
@@ -68,7 +68,7 @@ class ProcessExecutor
         }
         $process->stop();
 
-        return $pid;
+        return (bool)$pid;
     }
 
     /**
@@ -100,7 +100,7 @@ class ProcessExecutor
 
         $params  = $this->escapeParamsString($params);
         $command = Application::formatCommandString("{$command} {$params}") .
-            " > {$output}; echo '{$uuid}' >> {$output}; php artisan remotisan:complete {$uuid}";
+            " > {$output}; php artisan remotisan:complete {$uuid}";
 
         // As background
         return '(' . $command . ') 2>&1 &';
