@@ -64,7 +64,7 @@ class Audit extends Model
      */
     public function markCompleted(): void
     {
-        $this->process_status = ProcessStatuses::COMPLETED;
+        $this->updateProcessStatus(ProcessStatuses::COMPLETED);
     }
 
     /**
