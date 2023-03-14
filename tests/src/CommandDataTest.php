@@ -23,7 +23,7 @@ class CommandDataTest extends Orchestra
         /** @var Command $migrate_status_command */
         $migrate_status_command = collect(Artisan::all())->filter(function(Command $command) {
             return $command->getName() == "migrate:status";
-        });
+        })->first();;
         $this->original_command = $migrate_status_command;
 
         $this->command_data = new CommandData(
@@ -36,88 +36,88 @@ class CommandDataTest extends Orchestra
 
     public function testCommandAttributesNotSkewedInternally()
     {
-        $this->assetEqual($this->original_command->getName(), $this->command_data->getName());
-        $this->assetEqual($this->original_command->getDefinition(), $this->command_data->getDefinition());
-        $this->assetEqual($this->original_command->getHelp(), $this->command_data->getHelp());
-        $this->assetEqual($this->original_command->getDescription(), $this->command_data->getDescription());
+        $this->assertEquals($this->original_command->getName(), $this->command_data->getName());
+        $this->assertEquals($this->original_command->getDefinition(), $this->command_data->getDefinition());
+        $this->assertEquals($this->original_command->getHelp(), $this->command_data->getHelp());
+        $this->assertEquals($this->original_command->getDescription(), $this->command_data->getDescription());
     }
 
     public function testToArray()
     {
         $arrayData = $this->command_data->toArray();
-        $this->assertArray($arrayData);
-        $this->assetEquals($this->original_command->getName(), $arrayData["name"]);
-        $this->assetEquals($this->original_command->getHelp(), $arrayData["help"]);
-        $this->assetEquals($this->original_command->getDescription(), $arrayData["description"]);
+        $this->assertIsArray($arrayData);
+        $this->assertEquals($this->original_command->getName(), $arrayData["name"]);
+        $this->assertEquals($this->original_command->getHelp(), $arrayData["help"]);
+        $this->assertEquals($this->original_command->getDescription(), $arrayData["description"]);
 
         $args = $this->original_command->getDefinition()->getArguments();
         $options = $this->original_command->getDefinition()->getOptions();
 
-        $this->assertArray($arrayData["definitions"]);
-        $this->assertArray($arrayData["definitions"]["args"]);
+        $this->assertIsArray($arrayData["definition"]);
+        $this->assertIsArray($arrayData["definition"]["args"]->all());
 
-        foreach ($arrayData["definitions"]["args"] as $argument) {
+        foreach ($arrayData["definition"]["args"]->all() as $argument) {
             $arg_desc = $argument["description"];
-            $original_arg = $args->filter(function($a) use ($arg_desc) {
+            $original_arg = collect($args)->filter(function($a) use ($arg_desc) {
                 return $a->getDescription() == $arg_desc;
             });
-            $this->assetEquals($original_arg->getDescription(), $argument["description"]);
-            $this->assetEquals($original_arg->getDefault(), $argument["default"]);
-            $this->assetEquals($original_arg->isRequired(), $argument["is_required"]);
-            $this->assetEquals($original_arg->isArray(), $argument["is_array"]);
+            $this->assertEquals($original_arg->getDescription(), $argument["description"]);
+            $this->assertEquals($original_arg->getDefault(), $argument["default"]);
+            $this->assertEquals($original_arg->isRequired(), $argument["is_required"]);
+            $this->assertEquals($original_arg->isArray(), $argument["is_array"]);
         }
 
-        $this->assertArray($arrayData["definitions"]["ops"]);
+        $this->assertIsArray($arrayData["definition"]["ops"]->all());
 
-        foreach ($arrayData["definitions"]["ops"] as $opt) {
+        foreach ($arrayData["definition"]["ops"] as $opt) {
             $opt_desc = $opt["description"];
-            $original_opt = $options->filter(function($a) use ($opt_desc) {
+            $original_opt = collect($options)->filter(function($a) use ($opt_desc) {
                 return $a->getDescription() == $opt_desc;
-            });
-            $this->assetEquals($original_opt->getDescription(), $opt["description"]);
-            $this->assetEquals($original_opt->getDefault(), $opt["default"]);
-            $this->assetEquals($original_opt->acceptValue(), $opt["accept_Value"]);
-            $this->assetEquals($original_opt->isValueRequired(), $opt["is_required"]);
-            $this->assetEquals($original_opt->isArray(), $opt["is_array"]);
+            })->first();
+            $this->assertEquals($original_opt->getDescription(), $opt["description"]);
+            $this->assertEquals($original_opt->getDefault(), $opt["default"]);
+            $this->assertEquals($original_opt->acceptValue(), $opt["accept_Value"]);
+            $this->assertEquals($original_opt->isValueRequired(), $opt["is_required"]);
+            $this->assertEquals($original_opt->isArray(), $opt["is_array"]);
         }
     }
 
     public function testArgToArray()
     {
-        $arguments = $this->command_data->ArgsToArray();
+        $arguments = $this->command_data->ArgsToArray()->all();
         $args = $this->original_command->getDefinition()->getArguments();
 
-        $this->assertArray($arguments);
+        $this->assertIsArray($arguments);
 
         foreach ($arguments as $argument) {
             $arg_desc = $argument["description"];
-            $original_arg = $args->filter(function($a) use ($arg_desc) {
+            $original_arg = collect($args)->filter(function($a) use ($arg_desc) {
                 return $a->getDescription() == $arg_desc;
-            });
-            $this->assetEquals($original_arg->getDescription(), $argument["description"]);
-            $this->assetEquals($original_arg->getDefault(), $argument["default"]);
-            $this->assetEquals($original_arg->isRequired(), $argument["is_required"]);
-            $this->assetEquals($original_arg->isArray(), $argument["is_array"]);
+            })->first();
+            $this->assertEquals($original_arg->getDescription(), $argument["description"]);
+            $this->assertEquals($original_arg->getDefault(), $argument["default"]);
+            $this->assertEquals($original_arg->isRequired(), $argument["is_required"]);
+            $this->assertEquals($original_arg->isArray(), $argument["is_array"]);
         }
     }
 
     public function testOptionsToArray()
     {
-        $options = $this->command_data->optionsToArray();
-        $original_options = $this->original_command->getDefinition()->getArguments();
+        $options = $this->command_data->optionsToArray()->all();
+        $original_options = $this->original_command->getDefinition()->getOptions();
 
-        $this->assertArray($options);
+        $this->assertIsArray($options);
 
         foreach ($options as $opt) {
             $opt_desc = $opt["description"];
-            $original_opt = $original_options->filter(function($a) use ($opt_desc) {
+            $original_opt = collect($original_options)->filter(function($a) use ($opt_desc) {
                 return $a->getDescription() == $opt_desc;
-            });
-            $this->assetEquals($original_opt->getDescription(), $opt["description"]);
-            $this->assetEquals($original_opt->getDefault(), $opt["default"]);
-            $this->assetEquals($original_opt->acceptValue(), $opt["accept_Value"]);
-            $this->assetEquals($original_opt->isValueRequired(), $opt["is_required"]);
-            $this->assetEquals($original_opt->isArray(), $opt["is_array"]);
+            })->first();
+            $this->assertEquals($original_opt->getDescription(), $opt["description"]);
+            $this->assertEquals($original_opt->getDefault(), $opt["default"]);
+            $this->assertEquals($original_opt->acceptValue(), $opt["accept_Value"]);
+            $this->assertEquals($original_opt->isValueRequired(), $opt["is_required"]);
+            $this->assertEquals($original_opt->isArray(), $opt["is_array"]);
         }
     }
 
@@ -125,31 +125,32 @@ class CommandDataTest extends Orchestra
     {
         $this->assertFalse($this->command_data->canExecute("anyRole"));
 
-        Config::set("remotisan.commands.allowed.someTestCommand.roles", ["anyRole", "admin"]);
+        Config::set("remotisan.commands.allowed.{$this->command_data->getName()}.roles", ["anyRole", "admin"]);
         $this->assertTrue($this->command_data->canExecute("anyRole"));
         $this->assertTrue($this->command_data->canExecute("admin"));
 
-        Config::set("remotisan.commands.allowed.someTestCommand.roles", ["*"]);
+        Config::set("remotisan.commands.allowed.{$this->original_command->getName()}.roles", ["*"]);
         $this->assertTrue($this->command_data->canExecute("anyRole888"));
     }
 
     public function testCheckExecuteOnNoRoles()
     {
-        Config::set("remotisan.commands.allowed.someTestCommand.roles", []);
+        Config::set("remotisan.commands.allowed.{$this->command_data->getName()}.roles", []);
         $this->expectException(UnauthenticatedException::class);
-        $this->assertFalse($this->command_data->checkExecute("anyRole"));
+        $this->command_data->checkExecute("anyRole");
     }
 
     public function testCheckExecuteOnImproperRole()
     {
-        Config::set("remotisan.commands.allowed.someTestCommand.roles", ["anyRole", "admin"]);
+        Config::set("remotisan.commands.allowed.{$this->command_data->getName()}.roles", ["anyRole", "admin"]);
         $this->expectException(UnauthenticatedException::class);
-        $this->assertFalse($this->command_data->checkExecute("anyRole888"));
+        $this->command_data->checkExecute("anyRole888");
     }
 
     public function testCheckExecuteOnWildcard()
     {   // should not throw any exception. it is intact.
-        Config::set("remotisan.commands.allowed.someTestCommand.roles", ["anyRole", "admin"]);
+        Config::set("remotisan.commands.allowed.{$this->command_data->getName()}.roles", ["*"]);
         $this->command_data->checkExecute("anyRole888");
+        $this->assertTrue($this->command_data->canExecute("anyRole888")); // this ultimately responds whether allowed or not.
     }
 }
