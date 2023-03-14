@@ -2,13 +2,11 @@
 namespace PayMe\Remotisan;
 
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use PayMe\Remotisan\Exceptions\RemotisanException;
 use PayMe\Remotisan\Exceptions\UnauthenticatedException;
 use PayMe\Remotisan\Models\ProcessStatuses;
 use PayMe\Remotisan\Models\Audit;
@@ -39,6 +37,11 @@ class Remotisan
         $this->processExecutor = $processExecutor;
     }
 
+    /**
+     * Get instance uuid from storage created during app deployment
+     * @return string
+     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
+     */
     public function getInstanceUuid():string
     {
         if (!$this->instance_uuid) {
@@ -93,6 +96,12 @@ class Remotisan
         ]);
     }
 
+    /**
+     * Send kill signal IF(!) the process belongs to different instance, otherwise - send SIGKILL directly.
+     * @param string $uuid
+     * @return string
+     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
+     */
     public function sendKillSignal(string $uuid): string
     {
         $auditRecord = null;
@@ -125,7 +134,7 @@ class Remotisan
     }
 
     /**
-     * Process killer passthru to process executor.
+     * Process killer.
      * @param string $uuid
      * @return int
      */

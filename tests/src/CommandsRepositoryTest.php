@@ -60,4 +60,10 @@ class CommandsRepositoryTest extends TestCase
 
         $this->assertEquals(["migrate:status"], $userCommands);
     }
+
+    public function testFindMethod()
+    {
+        $cmd = $this->commandsRepository->find("migrate:status");
+        $this->assertEquals("migrate:status", $cmd->getName());
+    }
 }

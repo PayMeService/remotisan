@@ -2,20 +2,27 @@
 
 namespace PayMe\Remotisan\Tests\src;
 
+use Illuminate\Support\Facades\Storage;
 use Orchestra\Testbench\TestCase as Orchestra;
+use PayMe\Remotisan\CommandsRepository;
+use PayMe\Remotisan\ProcessExecutor;
+use PayMe\Remotisan\Remotisan;
 use PayMe\Remotisan\RemotisanServiceProvider;
 
 class RemotisanTest extends Orchestra
 {
-    protected function getPackageProviders($app)
+    protected function setUp(): void
     {
-        return [
-            RemotisanServiceProvider::class,
-        ];
+        $this->remotisan = new Remotisan(new CommandsRepository(), new ProcessExecutor());
+        parent::setUp();
     }
 
-    public function getEnvironmentSetUp($app)
+    public function testGetInstanceUuid()
     {
-        config()->set('database.default', 'testing');
+        $definedInstanceUuid = "abc_instance_key";
+        Storage::disk("local")->put("remotisan_server_guid", $definedInstanceUuid);
+        $this->assertEquals($definedInstanceUuid, $this->remotisan->getInstanceUuid());
+
+        Storage::disk("local")->delete("remotisan_server_guid");
     }
 }
