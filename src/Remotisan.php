@@ -27,7 +27,7 @@ class Remotisan
 
     protected static $userIdentifierGetter;
 
-    protected string $instance_uuid;
+    protected string $instance_uuid = "";
 
     /**
      * @param CommandsRepository $commandsRepo
@@ -182,18 +182,9 @@ class Remotisan
      */
     public function read($executionUuid): array
     {
-        $content = explode(PHP_EOL, rtrim(File::get($this->getFilePath($executionUuid))));
-        $lines = count($content);
-        $isEnded = false;
-
-        if ($lines > 1 && $content[$lines-1] == $executionUuid) {
-            array_pop($content);
-            $isEnded = true;
-        }
-
         return [
-            "content" => $content,
-            "isEnded" => $isEnded
+            "content" => explode(PHP_EOL, rtrim(File::get($this->getFilePath($executionUuid)))),
+            "isEnded" => Audit::getByUuid($executionUuid)->getProcessStatus() === ProcessStatuses::COMPLETED
         ];
     }
 

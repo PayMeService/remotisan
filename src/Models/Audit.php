@@ -21,7 +21,7 @@ use PayMe\Remotisan\Exceptions\InvalidStatusException;
 class Audit extends Model
 {
     protected $table = "remotisan_audit";
-    protected $unguarded = true;
+    protected static $unguarded = true;
     public $timestamps = false;
 
     /**
@@ -95,5 +95,10 @@ class Audit extends Model
     public function getUuid(): string
     {
         return $this->uuid;
+    }
+
+    public function getProcessStatus(): int
+    {
+        return $this->process_status;
     }
 }
