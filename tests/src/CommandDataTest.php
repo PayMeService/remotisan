@@ -4,8 +4,10 @@ namespace PayMe\Remotisan\Tests\src;
 
 use Illuminate\Database\Console\Migrations\MigrateCommand;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Config;
 use Orchestra\Testbench\TestCase as Orchestra;
 use PayMe\Remotisan\CommandData;
+use PayMe\Remotisan\Exceptions\UnauthenticatedException;
 use PayMe\Remotisan\RemotisanServiceProvider;
 use Symfony\Component\Console\Command\Command;
 
@@ -119,18 +121,35 @@ class CommandDataTest extends Orchestra
         }
     }
 
-    public function testJsonSerialize()
-    {
-
-    }
-
     public function testCanExecute()
     {
+        $this->assertFalse($this->command_data->canExecute("anyRole"));
 
+        Config::set("remotisan.commands.allowed.someTestCommand.roles", ["anyRole", "admin"]);
+        $this->assertTrue($this->command_data->canExecute("anyRole"));
+        $this->assertTrue($this->command_data->canExecute("admin"));
+
+        Config::set("remotisan.commands.allowed.someTestCommand.roles", ["*"]);
+        $this->assertTrue($this->command_data->canExecute("anyRole888"));
     }
 
-    public function testCheckExecute()
+    public function testCheckExecuteOnNoRoles()
     {
+        Config::set("remotisan.commands.allowed.someTestCommand.roles", []);
+        $this->expectException(UnauthenticatedException::class);
+        $this->assertFalse($this->command_data->checkExecute("anyRole"));
+    }
 
+    public function testCheckExecuteOnImproperRole()
+    {
+        Config::set("remotisan.commands.allowed.someTestCommand.roles", ["anyRole", "admin"]);
+        $this->expectException(UnauthenticatedException::class);
+        $this->assertFalse($this->command_data->checkExecute("anyRole888"));
+    }
+
+    public function testCheckExecuteOnWildcard()
+    {   // should not throw any exception. it is intact.
+        Config::set("remotisan.commands.allowed.someTestCommand.roles", ["anyRole", "admin"]);
+        $this->command_data->checkExecute("anyRole888");
     }
 }
