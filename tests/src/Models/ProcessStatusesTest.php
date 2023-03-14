@@ -3,19 +3,18 @@
 namespace PayMe\Remotisan\Tests\src\Models;
 
 use Orchestra\Testbench\TestCase as Orchestra;
+use PayMe\Remotisan\Models\ProcessStatuses;
 use PayMe\Remotisan\RemotisanServiceProvider;
 
 class ProcessStatusesTest extends Orchestra
 {
-    protected function getPackageProviders($app)
+    public function testProcessStatuses()
     {
-        return [
-            RemotisanServiceProvider::class,
-        ];
-    }
+        $this->assertEquals(1, ProcessStatuses::RUNNING);
+        $this->assertEquals(2, ProcessStatuses::COMPLETED);
+        $this->assertEquals(3, ProcessStatuses::FAILED);
+        $this->assertEquals(4, ProcessStatuses::KILLED);
 
-    public function getEnvironmentSetUp($app)
-    {
-        config()->set('database.default', 'testing');
+        $this->assertNotContains(ProcessStatuses::RUNNING, ProcessStatuses::getNotRunningStatusesArray());
     }
 }
