@@ -21,7 +21,7 @@ class CommandDataTest extends Orchestra
     {
         parent::setUp();
         /** @var Command $migrate_status_command */
-        $migrate_status_command = Artisan::all()->filter(function(Command $command) {
+        $migrate_status_command = collect(Artisan::all())->filter(function(Command $command) {
             return $command->getName() == "migrate:status";
         });
         $this->original_command = $migrate_status_command;
