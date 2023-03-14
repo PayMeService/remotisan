@@ -15,6 +15,12 @@ $scope.log = {
 uuid: null,
 content: "",
 };
+$scope.proc_statuses = {
+"1": "RUNNING",
+"2": "COMPLETED",
+"3": "FAILED",
+"4": "KILLED"
+};
 
 $scope.$watch('showHistory', function(newVal,oldVal){
 if(newVal === true) {
@@ -30,6 +36,10 @@ $scope.log.uuid = $location.path().replace('/', '');
 $scope.readLog();
 }
 };
+
+$scope.statusCodeToHumanReadable = function (status_code) {
+    return $scope.proc_statuses[status_code];
+}
 
 $scope.locationPath = function (newPath)
 {
