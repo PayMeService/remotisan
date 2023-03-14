@@ -8,7 +8,6 @@
 
 namespace PayMe\Remotisan\Console\Commands;
 
-use Illuminate\Bus\Queueable;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
 use PayMe\Remotisan\Exceptions\RemotisanException;
@@ -16,7 +15,19 @@ use PayMe\Remotisan\Remotisan;
 
 class ProcessKillerCommand extends Command
 {
-    use Queueable;
+    /**
+     * The name and signature of the console command.
+     *
+     * @var string
+     */
+    protected $signature = "remotisan:process_killer";
+
+    /**
+     * The console command description.
+     *
+     * @var string
+     */
+    protected $description = "Remotisan's job killer";
 
     protected Remotisan $remotisan;
 
