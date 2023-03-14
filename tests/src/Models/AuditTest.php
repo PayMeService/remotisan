@@ -36,13 +36,13 @@ class AuditTest extends Orchestra
 
     public function testSetStatuses()
     {
-        $this->auditRecord->markKilled();
+        $this->auditRecord->markKilled(false);
         $this->assertEquals(ProcessStatuses::KILLED, $this->auditRecord->getProcessStatus());
 
-        $this->auditRecord->markFailed();
+        $this->auditRecord->markFailed(false);
         $this->assertEquals(ProcessStatuses::FAILED, $this->auditRecord->getProcessStatus());
 
-        $this->auditRecord->markCompleted();
+        $this->auditRecord->markCompleted(false);
         $this->assertEquals(ProcessStatuses::COMPLETED, $this->auditRecord->getProcessStatus());
     }
 }

@@ -29,7 +29,7 @@ class Audit extends Model
      * @param int $status
      * @return void
      */
-    public function updateProcessStatus(int $status): void
+    public function updateProcessStatus(int $status, bool $save = true): void
     {
         if(!in_array($status, ProcessStatuses::getNotRunningStatusesArray())) {
             throw new InvalidStatusException();
@@ -37,34 +37,36 @@ class Audit extends Model
 
         $this->process_status = $status;
         $this->finished_at    = time();
-        $this->save();
+        if ($save) {
+            $this->save();
+        }
     }
 
     /**
      * Facade to set status killed transparently to developers.
      * @return void
      */
-    public function markKilled(): void
+    public function markKilled(bool $save = true): void
     {
-        $this->updateProcessStatus(ProcessStatuses::KILLED);
+        $this->updateProcessStatus(ProcessStatuses::KILLED, $save);
     }
 
     /**
      * Facade to set status failed transparently to developers.
      * @return void
      */
-    public function markFailed(): void
+    public function markFailed(bool $save = true): void
     {
-        $this->updateProcessStatus(ProcessStatuses::FAILED);
+        $this->updateProcessStatus(ProcessStatuses::FAILED, $save);
     }
 
     /**
      * Facade to set status killed transparently to developers.
      * @return void
      */
-    public function markCompleted(): void
+    public function markCompleted(bool $save = true): void
     {
-        $this->updateProcessStatus(ProcessStatuses::COMPLETED);
+        $this->updateProcessStatus(ProcessStatuses::COMPLETED, $save);
     }
 
     /**
