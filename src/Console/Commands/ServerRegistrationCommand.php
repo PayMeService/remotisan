@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
-class ServerRegistration extends Command
+class ServerRegistrationCommand extends Command
 {
     /**
      * The name and signature of the console command.
