@@ -3,6 +3,7 @@ namespace PayMe\Remotisan;
 
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Request;
@@ -270,7 +271,7 @@ class Remotisan
     public function getInstanceUuid():string
     {
         if (!$this->instance_uuid) {
-            $this->instance_uuid = Storage::disk("local")->get(static::INSTANCE_UUID_FILE_NAME);
+            $this->instance_uuid = cache()->driver("file")->rememberForever(static::INSTANCE_UUID_FILE_NAME, fn() => Str::uuid()->toString());
         }
 
         return $this->instance_uuid;
@@ -282,6 +283,6 @@ class Remotisan
      */
     public function makeCacheKey(): string
     {
-        return implode(":", [config("remotisan.kill_switch_key_prefix"), env('APP_ENV', 'development'), $this->getInstanceUuid()]);
+        return implode(":", [config("remotisan.kill_switch_key_prefix"), App::environment(), $this->getInstanceUuid()]);
     }
 }
