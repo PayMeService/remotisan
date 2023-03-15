@@ -52,36 +52,20 @@ class Remotisan
         }
 
         $commandData->checkExecute($this->getUserGroup());
-
         $uuid = Str::uuid()->toString();
-
         $pid = $this->processExecutor->execute($command, $params, $uuid, $this->getFilePath($uuid));
-        $this->audit((int)$pid, $uuid, $this->getInstanceUuid(), time(), $command, $params, $this->getUserIdentifier(), ProcessStatuses::RUNNING);
-
-        return $uuid;
-    }
-
-    /**
-     * @param int $pid
-     * @param string $uuid
-     * @param int $timestamp
-     * @param string $command
-     * @param string $params
-     * @param string $userIdentifier
-     * @return void
-     */
-    public function audit(int $pid, string $uuid, string $instanceUuid, int $timestamp, string $command, string $params, string $userIdentifier, int $status): void
-    {
         Audit::create([
-            "pid"           => $pid,
+            "pid"           => (int)$pid,
             "uuid"          => $uuid,
-            "instance_uuid" => $instanceUuid,
-            "executed_at"   => $timestamp,
+            "instance_uuid" => $this->getInstanceUuid(),
+            "executed_at"   => time(),
             "command"       => $command,
             "parameters"    => $params,
-            "user_identifier"=> $userIdentifier,
-            "process_status"=> $status,
+            "user_identifier"=> $this->getUserIdentifier(),
+            "process_status"=> ProcessStatuses::RUNNING,
         ]);
+
+        return $uuid;
     }
 
     /**
