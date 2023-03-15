@@ -139,11 +139,9 @@ class Remotisan
         $auditRecord->markKilled();
         $values = collect($this->getKillUuids());
 
-        if ($key = $values->search($uuid, true)) {
-            if($key !== false) {
-                $values->forget($key);
-                $this->storeKillUuids($values->all());
-            }
+        if (false !== ($key = $values->search($uuid, true))) {
+            $values->forget($key);
+            $this->storeKillUuids($values->all());
         }
 
         return $uuid;
@@ -161,7 +159,7 @@ class Remotisan
 
         return [
             "content" => explode(PHP_EOL, rtrim(File::get($this->getFilePath($executionUuid)))),
-            "isEnded" => ($auditRecord ? $auditRecord->getProcessStatus() : 2) === ProcessStatuses::COMPLETED
+            "isEnded" => ($auditRecord ? $auditRecord->getProcessStatus() : ProcessStatuses::COMPLETED) === ProcessStatuses::COMPLETED
         ];
     }
 

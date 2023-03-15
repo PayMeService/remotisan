@@ -103,7 +103,7 @@ The server GUID is written into local file within laravel's storage on specific 
 
 ## Multi-instance requirements
 In a multi-instance environment you MUST implement Audit, Instance Identifier, User Identifier sections.
-As well, you would like to use Redis cache for proper communication between instances and process killer task.
+As well, you would like to use Redis (memcached, or other shared) cache for proper communication between instances and process killer task.
 In additional, you would like to create supervisor worker to run `php artisan remotisan:process-killer` in each instance.
 ### Technical details
 The package sends kill signals into redis with its server identifier and the job's guid, later on the process-killer job picks them according to instance the killer runs at, and attempt to kill.
