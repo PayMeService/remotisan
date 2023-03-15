@@ -90,7 +90,7 @@ class RemotisanController extends Controller {
     public function history(Request $request): Collection
     {
         return Audit::query()
-            ->where("user_identifier", $this->rt->getUserIdentifier())
+            //->where("user_identifier", $this->rt->getUserIdentifier()) // commented out by request to unscope history
             ->orderByDesc("executed_at")
             ->limit(config("remotisan.show_history_records_num"))
             ->get();

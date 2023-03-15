@@ -2,6 +2,7 @@
 namespace PayMe\Remotisan;
 
 use Carbon\Carbon;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Request;
@@ -113,7 +114,7 @@ class Remotisan
             throw new UnauthenticatedException("Action Not Allowed.", 404);
         }
 
-        if ($auditRecord->user_identifier != $this->getUserIdentifier()) {
+        if ($auditRecord->user_identifier != $this->getUserIdentifier() && !$this->isSuperUser()) {
             throw new UnauthenticatedException("Action Not Allowed.", 401);
         }
 
@@ -180,7 +181,7 @@ class Remotisan
      */
     public function makeCacheKey(): string
     {
-        return implode(":", [config("remotisan.killing_key"), $this->getInstanceUuid()]);
+        return implode(":", [config("remotisan.kill_switch_key_prefix"), $this->getInstanceUuid()]);
     }
 
     /**
@@ -266,5 +267,18 @@ class Remotisan
         if (! $this->getUserGroup()) {
             throw new UnauthenticatedException();
         }
+    }
+
+    /**
+     * checks whether current user is super user according to user identifier.
+     * Implementer have to be careful configuring super users used identifiers
+     *
+     * @return bool
+     */
+    public function isSuperUser(): bool
+    {
+        $supers = Arr::wrap(config("remotisan.super_users", []));
+
+        return in_array("*", $supers) || in_array($this->getUserIdentifier(), $supers);
     }
 }

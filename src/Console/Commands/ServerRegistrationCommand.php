@@ -20,7 +20,7 @@ class ServerRegistrationCommand extends Command
      *
      * @var string
      */
-    protected $signature = "remotisan:register_instance";
+    protected $signature = "remotisan:register-instance";
 
     /**
      * The console command description.
@@ -33,6 +33,6 @@ class ServerRegistrationCommand extends Command
     {
         $uuid = Str::uuid()->toString();
         Storage::disk("local")->put("remotisan_server_guid", $uuid);
-        Cache::put(implode(":", [config("remotisan.killing_key"), $uuid]), []);
+        Cache::put(implode(":", [config("remotisan.kill_switch_key_prefix"), $uuid]), []);
     }
 }

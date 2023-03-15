@@ -20,7 +20,7 @@ class ProcessKillerCommand extends Command
      *
      * @var string
      */
-    protected $signature = "remotisan:process_killer";
+    protected $signature = "remotisan:process-killer";
 
     /**
      * The console command description.
