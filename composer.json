@@ -50,7 +50,10 @@
     },
     "scripts": {
         "post-install-cmd": [
-            "PayMe\\Remotisan\\ServerRegistration::register"
+            "php artisan remotisan:register-instance"
+        ],
+        "post-update-cmd": [
+            "php artisan remotisan:register-instance"
         ]
     },
     "minimum-stability": "dev",
