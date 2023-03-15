@@ -3,6 +3,7 @@
 namespace PayMe\Remotisan\Tests\src;
 
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Orchestra\Testbench\TestCase as Orchestra;
 use PayMe\Remotisan\CommandsRepository;
 use PayMe\Remotisan\ProcessExecutor;
@@ -19,9 +20,10 @@ class RemotisanTest extends Orchestra
     public function testGetInstanceUuid()
     {
         $definedInstanceUuid = "abc_instance_key";
-        Storage::disk("local")->put(Remotisan::INSTANCE_UUID_FILE_NAME, $definedInstanceUuid);
+        cache()->driver("file")->forget(Remotisan::INSTANCE_UUID_FILE_NAME);
+        cache()->driver("file")->rememberForever(Remotisan::INSTANCE_UUID_FILE_NAME, fn() => "abc_instance_key");
         $this->assertEquals($definedInstanceUuid, $this->remotisan->getInstanceUuid());
 
-        Storage::disk("local")->delete(Remotisan::INSTANCE_UUID_FILE_NAME);
+        cache()->driver("file")->forget(Remotisan::INSTANCE_UUID_FILE_NAME);
     }
 }
