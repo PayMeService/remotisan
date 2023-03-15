@@ -20,9 +20,9 @@ class RemotisanTest extends Orchestra
     public function testGetInstanceUuid()
     {
         $definedInstanceUuid = "abc_instance_key";
-        Storage::disk("local")->put("remotisan_server_guid", $definedInstanceUuid);
+        Storage::disk("local")->put(Remotisan::INSTANCE_UUID_FILE_NAME, $definedInstanceUuid);
         $this->assertEquals($definedInstanceUuid, $this->remotisan->getInstanceUuid());
 
-        Storage::disk("local")->delete("remotisan_server_guid");
+        Storage::disk("local")->delete(Remotisan::INSTANCE_UUID_FILE_NAME);
     }
 }

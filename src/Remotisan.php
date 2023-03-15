@@ -18,6 +18,7 @@ class Remotisan
     const INSTANCE_VIOLATION_MSG    = "Instance violation";
     const RIGHT_VIOLATION_MSG       = "Rights violation";
     const KILL_FAILED_MSG           = "Kill failed";
+    const INSTANCE_UUID_FILE_NAME   = "remotisan_server_guid";
 
     private CommandsRepository $commandsRepo;
     /** @var callable[] */
@@ -46,7 +47,7 @@ class Remotisan
     public function getInstanceUuid():string
     {
         if (!$this->instance_uuid) {
-            $this->instance_uuid = Storage::disk("local")->get("remotisan_server_guid");
+            $this->instance_uuid = Storage::disk("local")->get(static::INSTANCE_UUID_FILE_NAME);
         }
 
         return $this->instance_uuid;

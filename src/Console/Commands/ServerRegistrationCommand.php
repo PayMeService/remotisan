@@ -12,6 +12,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use PayMe\Remotisan\Remotisan;
 
 class ServerRegistrationCommand extends Command
 {
@@ -32,7 +33,7 @@ class ServerRegistrationCommand extends Command
     static public function handle()
     {
         $uuid = Str::uuid()->toString();
-        Storage::disk("local")->put("remotisan_server_guid", $uuid);
+        Storage::disk("local")->put(Remotisan::INSTANCE_UUID_FILE_NAME, $uuid);
         Cache::put(implode(":", [config("remotisan.kill_switch_key_prefix"), $uuid]), []);
     }
 }
