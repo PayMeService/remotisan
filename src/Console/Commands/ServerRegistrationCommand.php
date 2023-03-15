@@ -34,6 +34,6 @@ class ServerRegistrationCommand extends Command
     {
         $uuid = Str::uuid()->toString();
         Storage::disk("local")->put(Remotisan::INSTANCE_UUID_FILE_NAME, $uuid);
-        Cache::put(implode(":", [config("remotisan.kill_switch_key_prefix"), $uuid]), []);
+        Cache::put(implode(":", [config("remotisan.kill_switch_key_prefix"), env('APP_ENV', 'development'), $uuid]), []);
     }
 }

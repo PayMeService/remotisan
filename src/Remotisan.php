@@ -182,7 +182,7 @@ class Remotisan
      */
     public function makeCacheKey(): string
     {
-        return implode(":", [config("remotisan.kill_switch_key_prefix"), $this->getInstanceUuid()]);
+        return implode(":", [config("remotisan.kill_switch_key_prefix"), env('APP_ENV', 'development'), $this->getInstanceUuid()]);
     }
 
     /**
