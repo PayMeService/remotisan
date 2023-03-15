@@ -31,10 +31,7 @@ class ProcessKillerCommand extends Command
 
     public function handle(Remotisan $remotisan)
     {
-        $cacheKey = $remotisan->makeCacheKey();
-        $jobsUuidList = Cache::get($cacheKey) ?? [];
-
-        foreach ($jobsUuidList as $k => $uuid) {
+        foreach ($remotisan->getKillUuids() as $uuid) {
             $remotisan->killProcess($uuid);
             usleep(500000);
         }

@@ -40,20 +40,6 @@ class Remotisan
     }
 
     /**
-     * Get instance uuid from storage created during app deployment
-     * @return string
-     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
-     */
-    public function getInstanceUuid():string
-    {
-        if (!$this->instance_uuid) {
-            $this->instance_uuid = Storage::disk("local")->get(static::INSTANCE_UUID_FILE_NAME);
-        }
-
-        return $this->instance_uuid;
-    }
-
-    /**
      * @param string $command
      * @param string $params
      *
@@ -124,14 +110,14 @@ class Remotisan
         }
 
         if ($auditRecord->getInstanceUuid() == $this->getInstanceUuid()) { // if same instance, kill right away.
+
             return $this->killProcess($uuid);
         }
 
-        $cacheKey = $this->makeCacheKey();
-        $values = collect(Cache::get($cacheKey) ?? []);
-
+        $values = collect($this->getKillUuids());
         $values->push($uuid);
-        Cache::put($cacheKey, $values->all());
+        $this->storeKillUuids($values->all());
+
         return $uuid;
     }
 
@@ -167,26 +153,16 @@ class Remotisan
         }
 
         $auditRecord->markKilled();
-        $cacheKey = $this->makeCacheKey();
-        $values = collect(Cache::get($cacheKey) ?? []);
+        $values = collect($this->getKillUuids());
 
         if ($key = $values->search($uuid, true)) {
             if($key !== false) {
                 $values->forget($key);
-                Cache::put($cacheKey, $values->all());
+                $this->storeKillUuids($values->all());
             }
         }
 
         return $uuid;
-    }
-
-    /**
-     * Compose cache killing key
-     * @return string
-     */
-    public function makeCacheKey(): string
-    {
-        return implode(":", [config("remotisan.kill_switch_key_prefix"), env('APP_ENV', 'development'), $this->getInstanceUuid()]);
     }
 
     /**
@@ -281,5 +257,47 @@ class Remotisan
         $supers = Arr::wrap(config("remotisan.super_users", []));
 
         return in_array("*", $supers) || in_array($this->getUserIdentifier(), $supers);
+    }
+
+    /**
+     * Get Killing UUIDs from redis.
+     * @return array
+     */
+    public function getKillUuids(): array
+    {
+        return Cache::get($this->makeCacheKey()) ?? [];
+    }
+
+    /**
+     * Store killing UUIDs in redis.
+     * @param array $uuids
+     * @return void
+     */
+    public function storeKillUuids(array $uuids): void
+    {
+        Cache::put($this->makeCacheKey(), $uuids);
+    }
+
+    /**
+     * Get instance uuid from storage created during app deployment
+     * @return string
+     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
+     */
+    public function getInstanceUuid():string
+    {
+        if (!$this->instance_uuid) {
+            $this->instance_uuid = Storage::disk("local")->get(static::INSTANCE_UUID_FILE_NAME);
+        }
+
+        return $this->instance_uuid;
+    }
+
+    /**
+     * Compose cache killing key
+     * @return string
+     */
+    public function makeCacheKey(): string
+    {
+        return implode(":", [config("remotisan.kill_switch_key_prefix"), env('APP_ENV', 'development'), $this->getInstanceUuid()]);
     }
 }
