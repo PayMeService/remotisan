@@ -94,13 +94,10 @@ The audit table logs executions and allows the user to see who executed and what
 Audit table is MUST for the killing mechanism to work, as well as instance identifier we will cover in next section.
 
 ## Instance identifier
-Since the application may run in a multi-instance environment with no direct access to servers, we have to identify instance the remotisan set at.
-Implementer have to place the following command in post-install-cmd and post-update-cmd sections of composer.json.
+Since the application may run in a multi-instance environment with no direct ssh access to servers, we have to identify instance the remotisan set at.
+The way it is done is automagically from the code, on the access to remotisan we tag the server with GUID. 
 
-```php
-php artisan remotisan:register-instance
-```
-p.s. You can copy from package's composer.json
+*NOTE: If the server had remotisan deployed, it is already tagged and won't be re-tagged, to continue work on existing killing list (if such already exist).* 
 
 The server GUID is written into local file within laravel's storage on specific instance and later on used for killing jobs.
 
