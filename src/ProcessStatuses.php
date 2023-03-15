@@ -6,7 +6,7 @@
  * Time: {16:22}
  */
 
-namespace PayMe\Remotisan\Models;
+namespace PayMe\Remotisan;
 
 class ProcessStatuses
 {

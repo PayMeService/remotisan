@@ -8,8 +8,8 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use PayMe\Remotisan\Exceptions\RecordNotFoundException;
 use PayMe\Remotisan\Exceptions\UnauthenticatedException;
-use PayMe\Remotisan\Models\ProcessStatuses;
 use PayMe\Remotisan\Models\Audit;
 
 class Remotisan
@@ -112,7 +112,7 @@ class Remotisan
         }
 
         if (!$auditRecord) {
-            throw new UnauthenticatedException("Action Not Allowed.", 404);
+            throw new RecordNotFoundException("Action Not Allowed.", 404);
         }
 
         if ($auditRecord->user_identifier != $this->getUserIdentifier() && !$this->isSuperUser()) {
@@ -123,7 +123,7 @@ class Remotisan
             throw new UnauthenticatedException("Action Not Allowed.", 422);
         }
 
-        if ($auditRecord == $this->getInstanceUuid()) { // if same instance, kill right away.
+        if ($auditRecord->getInstanceUuid() == $this->getInstanceUuid()) { // if same instance, kill right away.
             return $this->killProcess($uuid);
         }
 
@@ -147,7 +147,11 @@ class Remotisan
             $auditRecord = Audit::getByUuid($uuid);
         }
 
-        if ($this->instance_uuid !== $auditRecord->getInstanceUuid()) {
+        if (!$auditRecord) {
+            throw new RecordNotFoundException("Action Not Allowed.", 404);
+        }
+
+        if ($this->getInstanceUuid() !== $auditRecord->getInstanceUuid()) {
             return static::INSTANCE_VIOLATION_MSG;
         }
 
@@ -193,9 +197,11 @@ class Remotisan
      */
     public function read($executionUuid): array
     {
+        $auditRecord = Audit::getByUuid($executionUuid);
+
         return [
             "content" => explode(PHP_EOL, rtrim(File::get($this->getFilePath($executionUuid)))),
-            "isEnded" => Audit::getByUuid($executionUuid)->getProcessStatus() === ProcessStatuses::COMPLETED
+            "isEnded" => ($auditRecord ? $auditRecord->getProcessStatus() : 2) === ProcessStatuses::COMPLETED
         ];
     }
 
@@ -228,13 +234,7 @@ class Remotisan
      */
     public function getUserIdentifier(): ?string
     {
-        $callable = static::$userIdentifierGetter;
-        if($callable === null) {
-            return null;
-        }
-
-        $request = Request::instance();
-        return call_user_func_array(static::$userIdentifierGetter, [$request]);
+        return static::$userIdentifierGetter ? call_user_func_array(static::$userIdentifierGetter, [Request::instance()]) : null;
     }
 
     /**

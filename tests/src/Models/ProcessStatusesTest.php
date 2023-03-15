@@ -3,8 +3,7 @@
 namespace PayMe\Remotisan\Tests\src\Models;
 
 use Orchestra\Testbench\TestCase as Orchestra;
-use PayMe\Remotisan\Models\ProcessStatuses;
-use PayMe\Remotisan\RemotisanServiceProvider;
+use PayMe\Remotisan\ProcessStatuses;
 
 class ProcessStatusesTest extends Orchestra
 {

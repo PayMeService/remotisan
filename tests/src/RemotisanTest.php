@@ -7,7 +7,6 @@ use Orchestra\Testbench\TestCase as Orchestra;
 use PayMe\Remotisan\CommandsRepository;
 use PayMe\Remotisan\ProcessExecutor;
 use PayMe\Remotisan\Remotisan;
-use PayMe\Remotisan\RemotisanServiceProvider;
 
 class RemotisanTest extends Orchestra
 {

@@ -49,12 +49,6 @@
         }
     },
     "scripts": {
-        "post-install-cmd": [
-            "php artisan remotisan:register-instance"
-        ],
-        "post-update-cmd": [
-            "php artisan remotisan:register-instance"
-        ]
     },
     "minimum-stability": "dev",
     "prefer-stable": true

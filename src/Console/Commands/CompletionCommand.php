@@ -28,14 +28,6 @@ class CompletionCommand extends Command
     protected $description = "Marks a remotisan job as completed.";
 
     /**
-     * Command initialization
-     */
-    public function __construct()
-    {
-        parent::__construct();
-    }
-
-    /**
      * The command execution handler.
      *
      * @return void
@@ -43,6 +35,9 @@ class CompletionCommand extends Command
     public function handle()
     {
         $auditRecord = Audit::getByUuid($this->argument("uuid"));
-        $auditRecord->markCompleted();
+
+        if ($auditRecord) {
+            $auditRecord->markCompleted();
+        }
     }
 }

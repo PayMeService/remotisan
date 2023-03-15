@@ -9,7 +9,6 @@ $scope.historyRecords = [];
 $scope.command = null;
 $scope.params = '';
 $scope.$location = {};
-$scope.killUuid = null;
 $scope.showHistory = false;
 $scope.log = {
 uuid: null,
@@ -23,7 +22,7 @@ $scope.proc_statuses = {
 };
 
 $scope.$watch('showHistory', function(newVal,oldVal){
-if(newVal === true) {
+if(newVal) {
 $scope.getHistory();
 }
 }, true);
@@ -75,11 +74,9 @@ console.log(response);
 };
 
 $scope.killProcess = function(uuid){
-$scope.killUuid = uuid;
-$http.post($scope.baseUrl + "/kill/" + $scope.killUuid)
+$http.post($scope.baseUrl + "/kill/" + uuid)
 .then(function(response){
 console.log("Response success", response.data);
-$scope.killUuid = null;
 alert("Process killed");
 },function(response){
 console.log(response);

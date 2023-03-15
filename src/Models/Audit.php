@@ -2,6 +2,7 @@
 namespace PayMe\Remotisan\Models;
 use Illuminate\Database\Eloquent\Model;
 use PayMe\Remotisan\Exceptions\InvalidStatusException;
+use PayMe\Remotisan\ProcessStatuses;
 
 /**
  * Class Audit
@@ -74,9 +75,10 @@ class Audit extends Model
      * @param string $uuid
      * @return Audit|null
      */
-    static public function getByUuid(string $uuid): ?Audit
+    public static function getByUuid(string $uuid): ?Audit
     {
-        return static::query()->where("uuid", $uuid)->first();
+        $q = static::query()->where("uuid", $uuid);
+        return $q->exists() ? $q->first() : null;
     }
 
     public function getPid(): int

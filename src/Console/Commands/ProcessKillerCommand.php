@@ -29,32 +29,14 @@ class ProcessKillerCommand extends Command
      */
     protected $description = "Remotisan's job killer";
 
-    protected Remotisan $remotisan;
-
-    public function __construct(Remotisan $remotisan)
+    public function handle(Remotisan $remotisan)
     {
-        $this->remotisan = $remotisan;
-        parent::__construct();
-    }
-    public function handle()
-    {
-        $cacheKey = $this->remotisan->makeCacheKey();
+        $cacheKey = $remotisan->makeCacheKey();
         $jobsUuidList = Cache::get($cacheKey) ?? [];
-        $killedJobs = [];
 
-        try {
-            foreach ($jobsUuidList as $k => $uuid) {
-                $killedUuid = $this->remotisan->killProcess($uuid);
-                if($killedUuid === $uuid) {
-                    $killedJobs[] = $uuid;
-                }
-                usleep(500000);
-            }
-        } catch (RemotisanException $e) {
-            // tumbled at some job.
-        } finally {
-            $refreshedUuids = collect(Cache::get($cacheKey) ?? []);
-            Cache::put($cacheKey, $refreshedUuids->diff($killedJobs)->all());
+        foreach ($jobsUuidList as $k => $uuid) {
+            $remotisan->killProcess($uuid);
+            usleep(500000);
         }
     }
 }

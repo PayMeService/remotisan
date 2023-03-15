@@ -21,6 +21,8 @@ class ProcessExecutor
     /**
      * @param string $command
      * @param string $params
+     * @param string $uuid
+     * @param string $output
      *
      * @return int $PID
      */
@@ -37,38 +39,48 @@ class ProcessExecutor
     }
 
     /**
+     * Simple command executor. Handles the execution and return the process for future work with it.
+     * Be it checks, or getOutput() or any other further manipulation on process object.
+     *
+     * @param string $cmd
+     * @return Process
+     */
+    public function executeCommand(string $cmd): Process
+    {
+        $process = Process::fromShellCommandline($cmd, base_path());
+        $process->enableOutput();
+        $process->run();
+
+        if (!$process->isSuccessful()) {
+            throw new ProcessFailedException($process->getErrorOutput());
+        }
+
+        return $process;
+    }
+
+    /**
      * Check process existence and belongs to artisan before killing.
      * @param Audit $audit
      * @return bool
      */
     public function isOwnedProcess(Audit $audit): bool
     {
-        $process = Process::fromShellCommandline("ps aux | grep \"{$audit->getPid()}\" | grep {$audit->command}", base_path());
-        $process->enableOutput();
-        $process->run();
-        usleep(4000);
+        $process = $this->executeCommand("ps aux | grep \"{$audit->getPid()}\" | grep {$audit->command}");
         $output = explode("\n", $process->getOutput());
-        $process->stop();
 
         return count($output) > 1;
     }
 
     /**
      * Process killer
-     * @param int $pid
+     * @param Audit $auditRecord
      * @return void
      */
     public function killProcess(Audit $auditRecord): bool
     {
-        $process = Process::fromShellCommandline("kill -9 {$auditRecord->getPid()}", base_path());
-        $process->start();
-        $pid = $process->getPid();
-        if (!$process->isSuccessful()) {
-            throw new ProcessFailedException($process);
-        }
-        $process->stop();
+        $process = $this->executeCommand("kill -9 {$auditRecord->getPid()}");
 
-        return (bool)$pid;
+        return (bool)$process->getPid();
     }
 
     /**
@@ -79,15 +91,9 @@ class ProcessExecutor
      */
     public function appendInputToFile($filePath, $input): int
     {
-        $process = Process::fromShellCommandline("echo \"{$input}\" >> {$filePath}", base_path());
-        $process->start();
-        $pid = $process->getPid();
-        if (!$process->isSuccessful()) {
-            throw new ProcessFailedException($process);
-        }
-        $process->stop();
+        $process = $this->executeCommand("echo \"{$input}\" >> {$filePath}");
 
-        return (bool)$pid;
+        return (bool)$process->getPid();
     }
 
     public function compileShell(
