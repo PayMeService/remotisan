@@ -159,7 +159,7 @@ class Remotisan
 
         return [
             "content" => explode(PHP_EOL, rtrim(File::get($this->getFilePath($executionUuid)))),
-            "isEnded" => ($auditRecord ? $auditRecord->getProcessStatus() : ProcessStatuses::COMPLETED) === ProcessStatuses::COMPLETED
+            "isEnded" => ($auditRecord ? $auditRecord->getProcessStatus() : ProcessStatuses::COMPLETED) !== ProcessStatuses::RUNNING
         ];
     }
 

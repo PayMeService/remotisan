@@ -80,7 +80,7 @@ class RemotisanController extends Controller {
             $uuid = null;
         }
 
-        return ["uuid" => $uuid];
+        return response()->json(["uuid" => $uuid], ($uuid ? 200 : 500));
     }
 
     /**
