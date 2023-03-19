@@ -77,8 +77,7 @@ class Audit extends Model
      */
     public static function getByUuid(string $uuid): ?Audit
     {
-        $q = static::query()->where("uuid", $uuid);
-        return $q->exists() ? $q->first() : null;
+        return static::query()->where("uuid", $uuid)->first();
     }
 
     public function getPid(): int
