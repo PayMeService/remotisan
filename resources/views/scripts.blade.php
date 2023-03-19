@@ -94,7 +94,7 @@ console.log(response);
 };
 
 $scope.readLog = function (log_uuid = null) {
-$scope.log.uuid = log_uuid !== null ? log_uuid : $scope.log.uuid;
+$scope.log.uuid = log_uuid || $scope.log.uuid;
 $http.get($scope.baseUrl + "/execute/" + $scope.log.uuid)
 .then(function (response) {
 $scope.locationPath($scope.log.uuid);

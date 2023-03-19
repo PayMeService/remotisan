@@ -56,7 +56,7 @@ class Remotisan
         $pid = $this->processExecutor->execute($command, $params, $uuid, $this->getFilePath($uuid));
         Audit::create([
             "pid"           => (int)$pid,
-            "uuid"          => $uuid,
+            "job_uuid"      => $uuid,
             "instance_uuid" => $this->getInstanceUuid(),
             "executed_at"   => time(),
             "command"       => $command,
@@ -77,6 +77,7 @@ class Remotisan
     public function sendKillSignal(string $uuid): string
     {
         $auditRecord = null;
+
         if(config("remotisan.allow_process_kill", false) === true) {
             $auditRecord = Audit::getByUuid($uuid);
         }

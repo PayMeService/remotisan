@@ -15,7 +15,7 @@ class AuditTest extends Orchestra
         parent::setUp();
         $this->auditRecord = (new Audit)->fill([
             "pid"           => 123123123,
-            "uuid"          => "testableUuid",
+            "job_uuid"      => "testableUuid",
             "instance_uuid" => "instanceUuid",
             "executed_at"   => "2023-03-03",
             "command"       => "migrate:status",
@@ -28,7 +28,7 @@ class AuditTest extends Orchestra
     public function testGetByUuid()
     {
         $this->assertEquals("instanceUuid", $this->auditRecord->getInstanceUuid());
-        $this->assertEquals("testableUuid", $this->auditRecord->getUuid());
+        $this->assertEquals("testableUuid", $this->auditRecord->getJobUuid());
         $this->assertEquals(123123123, $this->auditRecord->getPid());
         $this->assertEquals(ProcessStatuses::RUNNING, $this->auditRecord->getProcessStatus());
     }

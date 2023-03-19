@@ -35,6 +35,7 @@ class ProcessExecutor
         $pid = $this->process->getPid();
         usleep(4000);
         $this->process->stop();
+
         return $pid;
     }
 

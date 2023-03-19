@@ -10,7 +10,7 @@ use PayMe\Remotisan\ProcessStatuses;
  *
  * @property integer    id
  * @property integer    pid
- * @property string     uuid
+ * @property string     job_uuid
  * @property string     instance_uuid
  * @property integer    user_identifier
  * @property string     command
@@ -71,13 +71,13 @@ class Audit extends Model
     }
 
     /**
-     * Get audit record by UUID or null on not found.
+     * Get audit record by JOB_UUID or null on not found.
      * @param string $uuid
      * @return Audit|null
      */
     public static function getByUuid(string $uuid): ?Audit
     {
-        return static::query()->where("uuid", $uuid)->first();
+        return static::query()->where("job_uuid", $uuid)->first();
     }
 
     public function getPid(): int
@@ -95,9 +95,9 @@ class Audit extends Model
         return $this->instance_uuid;
     }
 
-    public function getUuid(): string
+    public function getJobUuid(): string
     {
-        return $this->uuid;
+        return $this->job_uuid;
     }
 
     public function getProcessStatus(): int

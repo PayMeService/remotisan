@@ -11,7 +11,9 @@ namespace PayMe\Remotisan\Exceptions;
 class RemotisanException extends \RuntimeException
 {
     protected $message = 'Remotisan Generic Exception';
+
     protected $code = 500;
+
     public function __construct(
         $message = null,
         $code = null,

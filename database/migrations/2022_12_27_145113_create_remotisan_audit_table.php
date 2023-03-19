@@ -16,7 +16,7 @@ class CreateRemotisanAuditTable extends Migration
         Schema::create(app(\PayMe\Remotisan\Models\Audit::class)->getTable(), function (Blueprint $table) {
             $table->increments("id")->primary();
             $table->integer("pid")->unsigned();
-            $table->string("uuid")->unique();
+            $table->string("job_uuid")->unique();
             $table->string("instance_uuid")->unique();
             $table->string("user_identifier")->nullable()->index();
             $table->string("command");
@@ -24,7 +24,7 @@ class CreateRemotisanAuditTable extends Migration
             $table->integer("executed_at")->unsigned()->index();
             $table->integer("finished_at")->unsigned();
             $table->tinyInteger("process_status")->unsigned();
-            $table->index(["uuid", "instance_uuid"]);
+            $table->index(["job_uuid", "instance_uuid"]);
         });
     }
 
