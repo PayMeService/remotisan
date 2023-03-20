@@ -5,7 +5,7 @@ use PayMe\Remotisan\Exceptions\InvalidStatusException;
 use PayMe\Remotisan\ProcessStatuses;
 
 /**
- * Class Executions
+ * Class Execution
  * @package https://github.com/PayMeService/remotisan
  *
  * @property integer    $id
@@ -20,7 +20,7 @@ use PayMe\Remotisan\ProcessStatuses;
  * @property integer    $executed_at
  * @property integer    $finished_at
  */
-class Executions extends Model
+class Execution extends Model
 {
     protected $table = "remotisan_executions";
     protected static $unguarded = true;
@@ -72,11 +72,11 @@ class Executions extends Model
     }
 
     /**
-     * Get audit record by JOB_UUID or null on not found.
+     * Get execution record by JOB_UUID or null on not found.
      * @param string $uuid
-     * @return Executions|null
+     * @return Execution|null
      */
-    public static function getByJobUuid(string $uuid): ?Executions
+    public static function getByJobUuid(string $uuid): ?Execution
     {
         return static::query()->where("job_uuid", $uuid)->first();
     }

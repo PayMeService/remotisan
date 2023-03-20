@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateRemotisanAuditTable extends Migration
+class CreateRemotisanExecutionsTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,7 +13,7 @@ class CreateRemotisanAuditTable extends Migration
      */
     public function up()
     {
-        Schema::create(app(\PayMe\Remotisan\Models\Executions::class)->getTable(), function (Blueprint $table) {
+        Schema::create(app(\PayMe\Remotisan\Models\Execution::class)->getTable(), function (Blueprint $table) {
             $table->increments("id")->primary();
             $table->integer("pid")->unsigned();
             $table->string("job_uuid")->unique();
@@ -36,6 +36,6 @@ class CreateRemotisanAuditTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists(app(\PayMe\Remotisan\Models\Executions::class)->getTable());
+        Schema::dropIfExists(app(\PayMe\Remotisan\Models\Execution::class)->getTable());
     }
 }

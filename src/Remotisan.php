@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Str;
 use PayMe\Remotisan\Exceptions\RecordNotFoundException;
 use PayMe\Remotisan\Exceptions\UnauthenticatedException;
-use PayMe\Remotisan\Models\Executions;
+use PayMe\Remotisan\Models\Execution;
 
 class Remotisan
 {
@@ -54,7 +54,7 @@ class Remotisan
         $commandData->checkExecute($this->getUserGroup());
         $uuid = Str::uuid()->toString();
         $pid = $this->processExecutor->execute($command, $params, $uuid, $this->getFilePath($uuid));
-        Executions::create([
+        Execution::create([
             "pid"           => (int)$pid,
             "job_uuid"      => $uuid,
             "server_uuid"   => $this->getServerUuid(),
@@ -76,27 +76,27 @@ class Remotisan
      */
     public function sendKillSignal(string $uuid): string
     {
-        $auditRecord = null;
+        $executionRecord = null;
 
         if(config("remotisan.allow_process_kill", false) === true) {
-            $auditRecord = Executions::getByJobUuid($uuid);
+            $executionRecord = Execution::getByJobUuid($uuid);
         }
 
-        if (!$auditRecord) {
+        if (!$executionRecord) {
             throw new RecordNotFoundException("Action Not Allowed.", 404);
         }
 
-        if ($auditRecord->user_identifier != $this->getUserIdentifier() && !$this->isSuperUser()) {
+        if ($executionRecord->user_identifier != $this->getUserIdentifier() && !$this->isSuperUser()) {
             throw new UnauthenticatedException("Action Not Allowed.", 401);
         }
 
-        if ($auditRecord->process_status !== ProcessStatuses::RUNNING) {
+        if ($executionRecord->process_status !== ProcessStatuses::RUNNING) {
             throw new UnauthenticatedException("Action Not Allowed.", 422);
         }
 
-        $auditRecord->killed_by = $this->getUserIdentifier();
+        $executionRecord->killed_by = $this->getUserIdentifier();
 
-        if ($auditRecord->server_uuid == $this->getServerUuid()) { // if same instance, kill right away.
+        if ($executionRecord->server_uuid == $this->getServerUuid()) { // if same instance, kill right away.
 
             return $this->killProcess($uuid);
         }
@@ -115,31 +115,31 @@ class Remotisan
      */
     public function killProcess(string $uuid): string
     {
-        $auditRecord = null;
+        $executionRecord = null;
         if (config("remotisan.allow_process_kill", false) === true) {
-            $auditRecord = Executions::getByJobUuid($uuid);
+            $executionRecord = Execution::getByJobUuid($uuid);
         }
 
-        if (!$auditRecord) {
+        if (!$executionRecord) {
             throw new RecordNotFoundException("Action Not Allowed.", 404);
         }
 
-        if ($this->getServerUuid() !== $auditRecord->server_uuid) {
+        if ($this->getServerUuid() !== $executionRecord->server_uuid) {
             return static::INSTANCE_VIOLATION_MSG;
         }
 
-        if (!$this->processExecutor->isOwnedProcess($auditRecord)) {
+        if (!$this->processExecutor->isOwnedProcess($executionRecord)) {
             return static::RIGHT_VIOLATION_MSG;
         }
 
         $dateTime = (string)Carbon::parse();
         $this->processExecutor->appendInputToFile($this->getFilePath($uuid), "\nPROCESS KILLED AT " . $dateTime . "\n");
 
-        if (!$this->processExecutor->killProcess($auditRecord)) {
+        if (!$this->processExecutor->killProcess($executionRecord)) {
             return static::KILL_FAILED_MSG;
         }
 
-        $auditRecord->markKilled();
+        $executionRecord->markKilled();
         $values = collect($this->getKillUuids());
 
         if (false !== ($key = $values->search($uuid, true))) {
@@ -158,11 +158,11 @@ class Remotisan
      */
     public function read($executionUuid): array
     {
-        $auditRecord = Executions::getByJobUuid($executionUuid);
+        $executionRecord = Execution::getByJobUuid($executionUuid);
 
         return [
             "content" => explode(PHP_EOL, rtrim(File::get($this->getFilePath($executionUuid)))),
-            "isEnded" => ($auditRecord ? $auditRecord->process_status : ProcessStatuses::COMPLETED) !== ProcessStatuses::RUNNING
+            "isEnded" => ($executionRecord ? $executionRecord->process_status : ProcessStatuses::COMPLETED) !== ProcessStatuses::RUNNING
         ];
     }
 
