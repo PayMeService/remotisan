@@ -20,10 +20,10 @@ class RemotisanTest extends Orchestra
     public function testGetInstanceUuid()
     {
         $definedInstanceUuid = "abc_instance_key";
-        cache()->driver("file")->forget(Remotisan::INSTANCE_UUID_FILE_NAME);
-        cache()->driver("file")->rememberForever(Remotisan::INSTANCE_UUID_FILE_NAME, fn() => "abc_instance_key");
-        $this->assertEquals($definedInstanceUuid, $this->remotisan->getInstanceUuid());
+        cache()->driver("file")->forget(Remotisan::SERVER_UUID_FILE_NAME);
+        cache()->driver("file")->rememberForever(Remotisan::SERVER_UUID_FILE_NAME, fn() => "abc_instance_key");
+        $this->assertEquals($definedInstanceUuid, $this->remotisan->getServerUuid());
 
-        cache()->driver("file")->forget(Remotisan::INSTANCE_UUID_FILE_NAME);
+        cache()->driver("file")->forget(Remotisan::SERVER_UUID_FILE_NAME);
     }
 }

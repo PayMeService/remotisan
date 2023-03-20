@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use PayMe\Remotisan\CommandsRepository;
 use PayMe\Remotisan\Exceptions\ProcessFailedException;
-use PayMe\Remotisan\Models\Audit;
+use PayMe\Remotisan\Models\Executions;
 use PayMe\Remotisan\Remotisan;
 
 class RemotisanController extends Controller {
@@ -89,7 +89,7 @@ class RemotisanController extends Controller {
      */
     public function history(Request $request): Collection
     {
-        return Audit::query()
+        return Executions::query()
             //->where("user_identifier", $this->rt->getUserIdentifier()) // commented out by request to unscope history
             ->orderByDesc("executed_at")
             ->limit(config("remotisan.show_history_records_num"))

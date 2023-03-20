@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Str;
 use PayMe\Remotisan\Exceptions\RecordNotFoundException;
 use PayMe\Remotisan\Exceptions\UnauthenticatedException;
-use PayMe\Remotisan\Models\Audit;
+use PayMe\Remotisan\Models\Executions;
 
 class Remotisan
 {
@@ -18,7 +18,7 @@ class Remotisan
     const INSTANCE_VIOLATION_MSG    = "Instance violation";
     const RIGHT_VIOLATION_MSG       = "Rights violation";
     const KILL_FAILED_MSG           = "Kill failed";
-    const INSTANCE_UUID_FILE_NAME   = "remotisan_server_guid";
+    const SERVER_UUID_FILE_NAME     = "remotisan_server_guid";
 
     private CommandsRepository $commandsRepo;
     /** @var callable[] */
@@ -27,7 +27,7 @@ class Remotisan
 
     protected static $userIdentifierGetter;
 
-    protected string $instance_uuid = "";
+    protected string $server_uuid = "";
 
     /**
      * @param CommandsRepository $commandsRepo
@@ -54,10 +54,10 @@ class Remotisan
         $commandData->checkExecute($this->getUserGroup());
         $uuid = Str::uuid()->toString();
         $pid = $this->processExecutor->execute($command, $params, $uuid, $this->getFilePath($uuid));
-        Audit::create([
+        Executions::create([
             "pid"           => (int)$pid,
             "job_uuid"      => $uuid,
-            "instance_uuid" => $this->getInstanceUuid(),
+            "server_uuid"   => $this->getServerUuid(),
             "executed_at"   => time(),
             "command"       => $command,
             "parameters"    => $params,
@@ -79,7 +79,7 @@ class Remotisan
         $auditRecord = null;
 
         if(config("remotisan.allow_process_kill", false) === true) {
-            $auditRecord = Audit::getByUuid($uuid);
+            $auditRecord = Executions::getByJobUuid($uuid);
         }
 
         if (!$auditRecord) {
@@ -94,7 +94,9 @@ class Remotisan
             throw new UnauthenticatedException("Action Not Allowed.", 422);
         }
 
-        if ($auditRecord->getInstanceUuid() == $this->getInstanceUuid()) { // if same instance, kill right away.
+        $auditRecord->killed_by = $this->getUserIdentifier();
+
+        if ($auditRecord->server_uuid == $this->getServerUuid()) { // if same instance, kill right away.
 
             return $this->killProcess($uuid);
         }
@@ -115,14 +117,14 @@ class Remotisan
     {
         $auditRecord = null;
         if (config("remotisan.allow_process_kill", false) === true) {
-            $auditRecord = Audit::getByUuid($uuid);
+            $auditRecord = Executions::getByJobUuid($uuid);
         }
 
         if (!$auditRecord) {
             throw new RecordNotFoundException("Action Not Allowed.", 404);
         }
 
-        if ($this->getInstanceUuid() !== $auditRecord->getInstanceUuid()) {
+        if ($this->getServerUuid() !== $auditRecord->server_uuid) {
             return static::INSTANCE_VIOLATION_MSG;
         }
 
@@ -156,11 +158,11 @@ class Remotisan
      */
     public function read($executionUuid): array
     {
-        $auditRecord = Audit::getByUuid($executionUuid);
+        $auditRecord = Executions::getByJobUuid($executionUuid);
 
         return [
             "content" => explode(PHP_EOL, rtrim(File::get($this->getFilePath($executionUuid)))),
-            "isEnded" => ($auditRecord ? $auditRecord->getProcessStatus() : ProcessStatuses::COMPLETED) !== ProcessStatuses::RUNNING
+            "isEnded" => ($auditRecord ? $auditRecord->process_status : ProcessStatuses::COMPLETED) !== ProcessStatuses::RUNNING
         ];
     }
 
@@ -266,13 +268,13 @@ class Remotisan
      * @return string
      * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
      */
-    public function getInstanceUuid():string
+    public function getServerUuid():string
     {
-        if (!$this->instance_uuid) {
-            $this->instance_uuid = cache()->driver("file")->rememberForever(static::INSTANCE_UUID_FILE_NAME, fn() => Str::uuid()->toString());
+        if (!$this->server_uuid) {
+            $this->server_uuid = cache()->driver("file")->rememberForever(static::SERVER_UUID_FILE_NAME, fn() => Str::uuid()->toString());
         }
 
-        return $this->instance_uuid;
+        return $this->server_uuid;
     }
 
     /**
@@ -281,6 +283,6 @@ class Remotisan
      */
     public function makeCacheKey(): string
     {
-        return implode(":", [config("remotisan.kill_switch_key_prefix"), App::environment(), $this->getInstanceUuid()]);
+        return implode(":", [config("remotisan.kill_switch_key_prefix"), App::environment(), $this->getServerUuid()]);
     }
 }

@@ -9,7 +9,7 @@
 namespace PayMe\Remotisan\Console\Commands;
 
 use Illuminate\Console\Command;
-use PayMe\Remotisan\Models\Audit;
+use PayMe\Remotisan\Models\Executions;
 
 class CompletionCommand extends Command
 {
@@ -34,7 +34,7 @@ class CompletionCommand extends Command
      */
     public function handle()
     {
-        $auditRecord = Audit::getByUuid($this->argument("uuid"));
+        $auditRecord = Executions::getByJobUuid($this->argument("uuid"));
 
         if ($auditRecord) {
             $auditRecord->markCompleted();

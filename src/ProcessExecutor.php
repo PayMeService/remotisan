@@ -12,7 +12,7 @@ use Illuminate\Console\Application;
 use Illuminate\Support\ProcessUtils;
 use Illuminate\Support\Str;
 use PayMe\Remotisan\Exceptions\ProcessFailedException;
-use PayMe\Remotisan\Models\Audit;
+use PayMe\Remotisan\Models\Executions;
 use Symfony\Component\Process\Process;
 
 class ProcessExecutor
@@ -61,12 +61,12 @@ class ProcessExecutor
 
     /**
      * Check process existence and belongs to artisan before killing.
-     * @param Audit $audit
+     * @param Executions $audit
      * @return bool
      */
-    public function isOwnedProcess(Audit $audit): bool
+    public function isOwnedProcess(Executions $audit): bool
     {
-        $process = $this->executeCommand("ps aux | grep \"{$audit->getPid()}\" | grep {$audit->command}");
+        $process = $this->executeCommand("ps aux | grep \"{$audit->pid}\" | grep {$audit->command}");
         $output = explode("\n", $process->getOutput());
 
         return count($output) > 1;
@@ -74,12 +74,12 @@ class ProcessExecutor
 
     /**
      * Process killer
-     * @param Audit $auditRecord
+     * @param Executions $auditRecord
      * @return void
      */
-    public function killProcess(Audit $auditRecord): bool
+    public function killProcess(Executions $auditRecord): bool
     {
-        $process = $this->executeCommand("kill -9 {$auditRecord->getPid()}");
+        $process = $this->executeCommand("kill -9 {$auditRecord->pid}");
 
         return (bool)$process->getPid();
     }
