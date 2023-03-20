@@ -11,26 +11,90 @@ namespace PayMe\Remotisan;
 use Illuminate\Console\Application;
 use Illuminate\Support\ProcessUtils;
 use Illuminate\Support\Str;
+use PayMe\Remotisan\Exceptions\ProcessFailedException;
+use PayMe\Remotisan\Models\Execution;
 use Symfony\Component\Process\Process;
 
 class ProcessExecutor
 {
+    protected Process $process;
     /**
      * @param string $command
      * @param string $params
+     * @param string $uuid
+     * @param string $output
      *
-     * @return string
+     * @return int $PID
      */
-    public function execute(string $command, string $params, string $uuid, string $output): string
+    public function execute(string $command, string $params, string $uuid, string $output): int
     {
         $command = $this->compileShell($output, $params, $command, $uuid);
 
-        $p = Process::fromShellCommandline($command, base_path(), null, null, null);
-        $p->start();
+        $this->process = Process::fromShellCommandline($command, base_path(), null, null, null);
+        $this->process->start();
+        $pid = $this->process->getPid();
         usleep(4000);
-        $p->stop();
+        $this->process->stop();
 
-        return $uuid;
+        return $pid;
+    }
+
+    /**
+     * Simple command executor. Handles the execution and return the process for future work with it.
+     * Be it checks, or getOutput() or any other further manipulation on process object.
+     *
+     * @param string $cmd
+     * @return Process
+     */
+    public function executeCommand(string $cmd): Process
+    {
+        $process = Process::fromShellCommandline($cmd, base_path());
+        $process->enableOutput();
+        $process->run();
+
+        if (!$process->isSuccessful()) {
+            throw new ProcessFailedException($process->getErrorOutput());
+        }
+
+        return $process;
+    }
+
+    /**
+     * Check process existence and belongs to artisan before killing.
+     * @param Execution $executionRecord
+     * @return bool
+     */
+    public function isOwnedProcess(Execution $executionRecord): bool
+    {
+        $process = $this->executeCommand("ps aux | grep \"{$executionRecord->pid}\" | grep {$executionRecord->command}");
+        $output = explode("\n", $process->getOutput());
+
+        return count($output) > 1;
+    }
+
+    /**
+     * Process killer
+     * @param Execution $executionRecord
+     * @return void
+     */
+    public function killProcess(Execution $executionRecord): bool
+    {
+        $process = $this->executeCommand("kill -9 {$executionRecord->pid}");
+
+        return (bool)$process->getPid();
+    }
+
+    /**
+     * Append input to file.
+     * @param $filePath
+     * @param $input
+     * @return int
+     */
+    public function appendInputToFile($filePath, $input): int
+    {
+        $process = $this->executeCommand("echo \"{$input}\" >> {$filePath}");
+
+        return (bool)$process->getPid();
     }
 
     public function compileShell(
@@ -43,7 +107,7 @@ class ProcessExecutor
 
         $params  = $this->escapeParamsString($params);
         $command = Application::formatCommandString("{$command} {$params}") .
-                   " > {$output}; echo '{$uuid}' >> {$output}";
+            " > {$output}; php artisan remotisan:complete {$uuid}";
 
         // As background
         return '(' . $command . ') 2>&1 &';

@@ -3,6 +3,8 @@
 namespace PayMe\Remotisan;
 
 use Illuminate\Support\ServiceProvider;
+use PayMe\Remotisan\Console\Commands\CompletionCommand;
+use PayMe\Remotisan\Console\Commands\ProcessKillerCommand;
 
 class RemotisanServiceProvider extends ServiceProvider
 {
@@ -24,6 +26,10 @@ class RemotisanServiceProvider extends ServiceProvider
         $this->loadRoutesFrom(__DIR__ . '/../routes/web.php');
 
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'remotisan');
+
+        $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
+
+        $this->commands([CompletionCommand::class, ProcessKillerCommand::class]);
     }
 
     /**

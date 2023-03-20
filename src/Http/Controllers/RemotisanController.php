@@ -2,10 +2,12 @@
 
 namespace PayMe\Remotisan\Http\Controllers;
 
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use PayMe\Remotisan\CommandsRepository;
-use PayMe\Remotisan\Exceptions\UnauthenticatedException;
+use PayMe\Remotisan\Exceptions\ProcessFailedException;
+use PayMe\Remotisan\Models\Execution;
 use PayMe\Remotisan\Remotisan;
 
 class RemotisanController extends Controller {
@@ -62,6 +64,36 @@ class RemotisanController extends Controller {
         return [
             "id" => $this->rt->execute($command, $params)
         ];
+    }
+
+    /**
+     * Kill process endpoint. If PID returned, then process killed.
+     * @param Request   $request
+     * @param string    $uuid
+     * @return array
+     */
+    public function sendKillSignal(Request $request, string $uuid): array
+    {
+        try {
+            $this->rt->sendKillSignal($uuid);
+        } catch (ProcessFailedException $e) {
+            $uuid = null;
+        }
+
+        return response()->json(["uuid" => $uuid], ($uuid ? 200 : 500));
+    }
+
+    /**
+     * @param Request $request
+     * @return Collection
+     */
+    public function history(Request $request): Collection
+    {
+        return Execution::query()
+            //->where("user_identifier", $this->rt->getUserIdentifier()) // commented out by request to unscope history
+            ->orderByDesc("executed_at")
+            ->limit(config("remotisan.show_history_records_num"))
+            ->get();
     }
 
     /**

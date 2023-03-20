@@ -1,6 +1,6 @@
 <?php
 
-namespace PayMe\Remotisan\Tests;
+namespace PayMe\Remotisan\Tests\src;
 
 use Orchestra\Testbench\TestCase as Orchestra;
 use PayMe\Remotisan\RemotisanServiceProvider;

@@ -1,11 +1,10 @@
 <?php
 
-namespace PayMe\Remotisan\Tests;
+namespace PayMe\Remotisan\Tests\src;
 
 use Illuminate\Support\Str;
 use PayMe\Remotisan\CommandData;
 use PayMe\Remotisan\CommandsRepository;
-use PayMe\Remotisan\ProcessExecutor;
 
 class CommandsRepositoryTest extends TestCase
 {
@@ -60,5 +59,11 @@ class CommandsRepositoryTest extends TestCase
             ->keys()->sort()->toArray();
 
         $this->assertEquals(["migrate:status"], $userCommands);
+    }
+
+    public function testFindMethod()
+    {
+        $cmd = $this->commandsRepository->find("migrate:status");
+        $this->assertEquals("migrate:status", $cmd->getName());
     }
 }

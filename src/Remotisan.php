@@ -1,21 +1,33 @@
 <?php
 namespace PayMe\Remotisan;
 
-use Illuminate\Console\Application;
+use Carbon\Carbon;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Request;
-use Illuminate\Support\ProcessUtils;
 use Illuminate\Support\Str;
+use PayMe\Remotisan\Exceptions\RecordNotFoundException;
 use PayMe\Remotisan\Exceptions\UnauthenticatedException;
-use Symfony\Component\Process\Process;
+use PayMe\Remotisan\Models\Execution;
 
 class Remotisan
 {
+
+    const INSTANCE_VIOLATION_MSG    = "Instance violation";
+    const RIGHT_VIOLATION_MSG       = "Rights violation";
+    const KILL_FAILED_MSG           = "Kill failed";
+    const SERVER_UUID_FILE_NAME     = "remotisan_server_guid";
 
     private CommandsRepository $commandsRepo;
     /** @var callable[] */
     private static array $authWith = [];
     private ProcessExecutor $processExecutor;
+
+    protected static $userIdentifierGetter;
+
+    protected string $server_uuid = "";
 
     /**
      * @param CommandsRepository $commandsRepo
@@ -40,10 +52,100 @@ class Remotisan
         }
 
         $commandData->checkExecute($this->getUserGroup());
-
         $uuid = Str::uuid()->toString();
+        $pid = $this->processExecutor->execute($command, $params, $uuid, $this->getFilePath($uuid));
+        Execution::create([
+            "pid"           => (int)$pid,
+            "job_uuid"      => $uuid,
+            "server_uuid"   => $this->getServerUuid(),
+            "executed_at"   => time(),
+            "command"       => $command,
+            "parameters"    => $params,
+            "user_identifier"=> $this->getUserIdentifier(),
+            "process_status"=> ProcessStatuses::RUNNING,
+        ]);
 
-        $this->processExecutor->execute($command, $params, $uuid, $this->getFilePath($uuid));
+        return $uuid;
+    }
+
+    /**
+     * Send kill signal IF(!) the process belongs to different instance, otherwise - send SIGKILL directly.
+     * @param string $uuid
+     * @return string
+     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
+     */
+    public function sendKillSignal(string $uuid): string
+    {
+        $executionRecord = null;
+
+        if(config("remotisan.allow_process_kill", false) === true) {
+            $executionRecord = Execution::getByJobUuid($uuid);
+        }
+
+        if (!$executionRecord) {
+            throw new RecordNotFoundException("Action Not Allowed.", 404);
+        }
+
+        if ($executionRecord->user_identifier != $this->getUserIdentifier() && !$this->isSuperUser()) {
+            throw new UnauthenticatedException("Action Not Allowed.", 401);
+        }
+
+        if ($executionRecord->process_status !== ProcessStatuses::RUNNING) {
+            throw new UnauthenticatedException("Action Not Allowed.", 422);
+        }
+
+        $executionRecord->killed_by = $this->getUserIdentifier();
+
+        if ($executionRecord->server_uuid == $this->getServerUuid()) { // if same instance, kill right away.
+
+            return $this->killProcess($uuid);
+        }
+
+        $values = collect($this->getKillUuids());
+        $values->push($uuid);
+        $this->storeKillUuids($values->all());
+
+        return $uuid;
+    }
+
+    /**
+     * Process killer.
+     * @param string $uuid
+     * @return int
+     */
+    public function killProcess(string $uuid): string
+    {
+        $executionRecord = null;
+        if (config("remotisan.allow_process_kill", false) === true) {
+            $executionRecord = Execution::getByJobUuid($uuid);
+        }
+
+        if (!$executionRecord) {
+            throw new RecordNotFoundException("Action Not Allowed.", 404);
+        }
+
+        if ($this->getServerUuid() !== $executionRecord->server_uuid) {
+            return static::INSTANCE_VIOLATION_MSG;
+        }
+
+        if (!$this->processExecutor->isOwnedProcess($executionRecord)) {
+            return static::RIGHT_VIOLATION_MSG;
+        }
+
+        $dateTime = (string)Carbon::parse();
+        $this->processExecutor->appendInputToFile($this->getFilePath($uuid), "\nPROCESS KILLED AT " . $dateTime . "\n");
+
+        if (!$this->processExecutor->killProcess($executionRecord)) {
+            return static::KILL_FAILED_MSG;
+        }
+
+        $executionRecord->markKilled();
+        $values = collect($this->getKillUuids());
+
+        if (false !== ($key = $values->search($uuid, true))) {
+            $values->forget($key);
+            $this->storeKillUuids($values->all());
+        }
 
         return $uuid;
     }
@@ -56,16 +158,11 @@ class Remotisan
      */
     public function read($executionUuid): array
     {
-        $content = explode(PHP_EOL, rtrim(File::get($this->getFilePath($executionUuid))));
-        $lines = count($content);
-        $isEnded = false;
-        if ($lines > 1 && $content[$lines-1] == $executionUuid) {
-            array_pop($content);
-            $isEnded = true;
-        }
+        $executionRecord = Execution::getByJobUuid($executionUuid);
+
         return [
-            "content" => $content,
-            "isEnded" => $isEnded
+            "content" => explode(PHP_EOL, rtrim(File::get($this->getFilePath($executionUuid)))),
+            "isEnded" => ($executionRecord ? $executionRecord->process_status : ProcessStatuses::COMPLETED) !== ProcessStatuses::RUNNING
         ];
     }
 
@@ -82,7 +179,6 @@ class Remotisan
         return $path.$executionUuid.'.log';
     }
 
-
     /**
      * @param          $role
      * @param callable $callable
@@ -95,6 +191,23 @@ class Remotisan
     }
 
     /**
+     * @return string
+     */
+    public function getUserIdentifier(): ?string
+    {
+        return static::$userIdentifierGetter ? call_user_func_array(static::$userIdentifierGetter, [Request::instance()]) : null;
+    }
+
+    /**
+     * @param callable $userIdentifierGetter
+     * @return void
+     */
+    public function setUserIdentifierGetter(callable $userIdentifierGetter):void
+    {
+        static::$userIdentifierGetter = $userIdentifierGetter;
+    }
+
+    /**
      * @return string|null
      */
     public function getUserGroup(): ?string
@@ -102,9 +215,9 @@ class Remotisan
         $request = Request::instance();
 
         return collect(static::$authWith)
-            ->first(function (array $roleData) use ($request) {
-                return call_user_func_array($roleData["callable"], [$request]);
-            })["role"] ?? null;
+                   ->first(function (array $roleData) use ($request) {
+                       return call_user_func_array($roleData["callable"], [$request]);
+                   })["role"] ?? null;
     }
 
     /**
@@ -116,5 +229,60 @@ class Remotisan
         if (! $this->getUserGroup()) {
             throw new UnauthenticatedException();
         }
+    }
+
+    /**
+     * checks whether current user is super user according to user identifier.
+     * Implementer have to be careful configuring super users used identifiers
+     *
+     * @return bool
+     */
+    public function isSuperUser(): bool
+    {
+        $supers = Arr::wrap(config("remotisan.super_users", []));
+
+        return in_array("*", $supers) || in_array($this->getUserIdentifier(), $supers);
+    }
+
+    /**
+     * Get Killing UUIDs from redis.
+     * @return array
+     */
+    public function getKillUuids(): array
+    {
+        return Cache::get($this->makeCacheKey()) ?? [];
+    }
+
+    /**
+     * Store killing UUIDs in redis.
+     * @param array $uuids
+     * @return void
+     */
+    public function storeKillUuids(array $uuids): void
+    {
+        Cache::put($this->makeCacheKey(), $uuids);
+    }
+
+    /**
+     * Get instance uuid from storage created during app deployment
+     * @return string
+     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
+     */
+    public function getServerUuid():string
+    {
+        if (!$this->server_uuid) {
+            $this->server_uuid = cache()->driver("file")->rememberForever(static::SERVER_UUID_FILE_NAME, fn() => Str::uuid()->toString());
+        }
+
+        return $this->server_uuid;
+    }
+
+    /**
+     * Compose cache killing key
+     * @return string
+     */
+    public function makeCacheKey(): string
+    {
+        return implode(":", [config("remotisan.kill_switch_key_prefix"), App::environment(), $this->getServerUuid()]);
     }
 }
