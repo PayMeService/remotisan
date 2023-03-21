@@ -72,7 +72,7 @@ class RemotisanController extends Controller {
      * @param string    $uuid
      * @return array
      */
-    public function sendKillSignal(Request $request, string $uuid): array
+    public function sendKillSignal(Request $request, string $uuid)
     {
         try {
             $this->rt->sendKillSignal($uuid);
