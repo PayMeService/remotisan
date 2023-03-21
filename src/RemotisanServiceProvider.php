@@ -4,6 +4,7 @@ namespace PayMe\Remotisan;
 
 use Illuminate\Support\ServiceProvider;
 use PayMe\Remotisan\Console\Commands\CompletionCommand;
+use PayMe\Remotisan\Console\Commands\ProcessExecuterCommand;
 use PayMe\Remotisan\Console\Commands\ProcessKillerCommand;
 
 class RemotisanServiceProvider extends ServiceProvider
@@ -29,7 +30,7 @@ class RemotisanServiceProvider extends ServiceProvider
 
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
 
-        $this->commands([CompletionCommand::class, ProcessKillerCommand::class]);
+        $this->commands([CompletionCommand::class, ProcessKillerCommand::class, ProcessExecuterCommand::class]);
     }
 
     /**

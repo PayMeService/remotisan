@@ -19,16 +19,14 @@ class ProcessExecutor
 {
     protected Process $process;
     /**
-     * @param string $command
-     * @param string $params
      * @param string $uuid
      * @param string $output
      *
      * @return int $PID
      */
-    public function execute(string $command, string $params, string $uuid, string $output): int
+    public function execute(string $uuid, string $output): int
     {
-        $command = $this->compileShell($output, $params, $command, $uuid);
+        $command = $this->compileShell($output, $uuid);
 
         $this->process = Process::fromShellCommandline($command, base_path(), null, null, null);
         $this->process->start();
@@ -62,14 +60,16 @@ class ProcessExecutor
     /**
      * Check process existence and belongs to artisan before killing.
      * @param Execution $executionRecord
-     * @return bool
+     * @return int[]
      */
-    public function isOwnedProcess(Execution $executionRecord): bool
+    public function getSubProcessIds(Execution $executionRecord): array
     {
-        $process = $this->executeCommand("ps aux | grep \"{$executionRecord->pid}\" | grep {$executionRecord->command}");
-        $output = explode("\n", $process->getOutput());
+        $process = $this->executeCommand("ps aux | grep '{$executionRecord->job_uuid}'");
+        $output = collect(explode("\n", $process->getOutput()))
+            ->filter()
+            ->map(fn($psLine) => array_filter(explode(" ", $psLine))[1]);
 
-        return count($output) > 1;
+        return $output->values()->all();
     }
 
     /**
@@ -79,7 +79,11 @@ class ProcessExecutor
      */
     public function killProcess(Execution $executionRecord): bool
     {
-        $process = $this->executeCommand("kill -9 {$executionRecord->pid}");
+        if (!$pids = $this->getSubProcessIds($executionRecord)) {
+            return false;
+        }
+
+        $process = $this->executeCommand("kill -9 " . join(" ", $pids));
 
         return (bool)$process->getPid();
     }
@@ -99,15 +103,12 @@ class ProcessExecutor
 
     public function compileShell(
         string $output,
-        string $params,
-        string $command,
         string $uuid
     ): string {
         $output  = ProcessUtils::escapeArgument($output);
 
-        $params  = $this->escapeParamsString($params);
-        $command = Application::formatCommandString("{$command} {$params}") .
-            " > {$output}; php artisan remotisan:complete {$uuid}";
+        $command = Application::formatCommandString("remotisan:execute {$uuid}") . " > {$output}; " .
+            Application::formatCommandString("remotisan:complete {$uuid}");
 
         // As background
         return '(' . $command . ') 2>&1 &';
@@ -126,7 +127,7 @@ class ProcessExecutor
      * Copied from \Illuminate\Console\Scheduling\Schedule::compileParameters
      * Thanks to Laravel Team
      *
-     * @param  array  $parameters
+     * @param  array  $params
      * @return string
      */
     protected function compileParamsArray(array $params): string

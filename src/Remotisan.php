@@ -53,9 +53,7 @@ class Remotisan
 
         $commandData->checkExecute($this->getUserGroup());
         $uuid = Str::uuid()->toString();
-        $pid = $this->processExecutor->execute($command, $params, $uuid, $this->getFilePath($uuid));
         Execution::create([
-            "pid"           => (int)$pid,
             "job_uuid"      => $uuid,
             "server_uuid"   => $this->getServerUuid(),
             "executed_at"   => time(),
@@ -64,6 +62,8 @@ class Remotisan
             "user_identifier"=> $this->getUserIdentifier(),
             "process_status"=> ProcessStatuses::RUNNING,
         ]);
+
+        $this->processExecutor->execute($uuid, $this->getFilePath($uuid));
 
         return $uuid;
     }
@@ -128,16 +128,12 @@ class Remotisan
             return static::INSTANCE_VIOLATION_MSG;
         }
 
-        if (!$this->processExecutor->isOwnedProcess($executionRecord)) {
-            return static::RIGHT_VIOLATION_MSG;
-        }
-
-        $dateTime = (string)Carbon::parse();
-        $this->processExecutor->appendInputToFile($this->getFilePath($uuid), "\nPROCESS KILLED AT " . $dateTime . "\n");
-
         if (!$this->processExecutor->killProcess($executionRecord)) {
             return static::KILL_FAILED_MSG;
         }
+
+        $dateTime = (string)Carbon::parse();
+        $this->processExecutor->appendInputToFile($this->getFilePath($executionRecord->job_uuid), "\nPROCESS KILLED AT " . $dateTime . "\n");
 
         $executionRecord->markKilled();
         $values = collect($this->getKillUuids());

@@ -15,7 +15,6 @@ class CreateRemotisanExecutionsTable extends Migration
     {
         Schema::create(app(\PayMe\Remotisan\Models\Execution::class)->getTable(), function (Blueprint $table) {
             $table->increments("id");
-            $table->integer("pid")->unsigned();
             $table->string("job_uuid")->unique();
             $table->string("server_uuid");
             $table->string("user_identifier")->nullable()->index();
