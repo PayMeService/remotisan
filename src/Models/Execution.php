@@ -9,7 +9,6 @@ use PayMe\Remotisan\ProcessStatuses;
  * @package https://github.com/PayMeService/remotisan
  *
  * @property integer    $id
- * @property integer    $pid
  * @property string     $job_uuid
  * @property string     $server_uuid
  * @property integer    $user_identifier

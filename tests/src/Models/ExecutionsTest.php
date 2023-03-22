@@ -14,7 +14,6 @@ class ExecutionsTest extends Orchestra
     {
         parent::setUp();
         $this->executionRecord = (new Execution)->fill([
-            "pid"           => 123123123,
             "job_uuid"      => "testableUuid",
             "server_uuid"   => "instanceUuid",
             "executed_at"   => "2023-03-03",
@@ -29,7 +28,6 @@ class ExecutionsTest extends Orchestra
     {
         $this->assertEquals("instanceUuid", $this->executionRecord->server_uuid);
         $this->assertEquals("testableUuid", $this->executionRecord->job_uuid);
-        $this->assertEquals(123123123, $this->executionRecord->pid);
         $this->assertEquals(ProcessStatuses::RUNNING, $this->executionRecord->process_status);
     }
 
