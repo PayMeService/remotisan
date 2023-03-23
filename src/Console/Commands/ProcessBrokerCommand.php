@@ -35,35 +35,46 @@ class ProcessBrokerCommand extends Command
     public function handle(Remotisan $remotisan)
     {
         $isProcessKilled = false;
+        $isProcessErroneous = false;
         $executionRecord = Execution::getByJobUuid($this->argument("uuid"));
+        $pathToLog = FileManager::getLogFilePath($executionRecord->job_uuid);
         $commandArray = array_merge(
-            explode(' ', $executionRecord->command),
+            explode(' ', "php artisan " . $executionRecord->command),
             $remotisan->getProcessExecutor()->compileCmdAsEscapedArray($executionRecord->parameters)
         );
 
-        $process = new Process($commandArray);
+        $process = new Process($commandArray, base_path());
         $process->start();
 
-        while ($process->isRunning()) {
-            $killInstruction = CacheManager::hasKillInstruction($executionRecord->job_uuid);
-            if($killInstruction) {
-                $process->signal(9);
+        $exitCode = $process->wait(function ($type, $buffer) use (&$isProcessKilled, &$isProcessErroneous, $executionRecord, $pathToLog, &$process) {
+            file_put_contents($pathToLog, $buffer, FILE_APPEND);
+            if ($process->isRunning() && CacheManager::hasKillInstruction($executionRecord->job_uuid)) {
                 $isProcessKilled = true;
+                $process->signal(9);
             }
-            sleep(5);
-        }
+
+            if (Process::ERR === $type) {
+                $isProcessErroneous = true;
+            }
+        });
 
         $executionRecord->refresh();
 
         if ($isProcessKilled) {
-            $killNote = "\nPROCESS KILLED BY {$executionRecord->killed_by} AT " . ((string)Carbon::parse()) . " \n";
-            $remotisan->getProcessExecutor()->appendInputToFile(FileManager::getLogFilePath($executionRecord->job_uuid), $killNote);
+
+            $killNote = "\n=============
+            \nPROCESS KILLED BY {$executionRecord->killed_by} AT " . ((string)Carbon::parse()) . " \n";
+            file_put_contents($pathToLog, $killNote, FILE_APPEND);
             CacheManager::removeKillInstruction($executionRecord->job_uuid);
             $executionRecord->markKilled();
 
             return;
         }
 
-        (!$process->isSuccessful() ? $executionRecord->markFailed() : $executionRecord->markCompleted());
+        if (($isProcessErroneous && $exitCode != 0) || !$process->isSuccessful()) {
+            $executionRecord->markFailed();
+        } else {
+            $executionRecord->markCompleted();
+        }
     }
 }

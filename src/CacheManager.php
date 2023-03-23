@@ -11,15 +11,10 @@ class CacheManager
      * add kill signal to the cache storage.
      *
      * @param   string  $uuid
-     * @return  string
      */
-    public static function addKillInstruction(string $uuid): string
+    public static function addKillInstruction(string $uuid): void
     {
-        $valuesCollection = static::getKillUuids();
-        $valuesCollection->push($uuid);
-        static::storeKillUuids($valuesCollection);
-
-        return $uuid;
+        static::storeKillUuids(static::getKillUuids()->push($uuid)->unique());
     }
 
     /**
@@ -49,7 +44,7 @@ class CacheManager
      */
     public static function hasKillInstruction(string $uuid): bool
     {
-        return false !== ($key = static::getKillUuids()->search($uuid, true));
+        return false !== static::getKillUuids()->search($uuid, true);
     }
 
     /**
