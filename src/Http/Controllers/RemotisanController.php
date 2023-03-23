@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use PayMe\Remotisan\CommandsRepository;
 use PayMe\Remotisan\Exceptions\ProcessFailedException;
+use PayMe\Remotisan\FileManager;
 use PayMe\Remotisan\Models\Execution;
 use PayMe\Remotisan\Remotisan;
 
@@ -107,6 +108,6 @@ class RemotisanController extends Controller {
     {
         $this->rt->requireAuthenticated();
 
-        return $this->rt->read($uuid);
+        return FileManager::read($uuid);
     }
 }

@@ -12,7 +12,6 @@ use Illuminate\Console\Application;
 use Illuminate\Support\ProcessUtils;
 use Illuminate\Support\Str;
 use PayMe\Remotisan\Exceptions\ProcessFailedException;
-use PayMe\Remotisan\Models\Execution;
 use Symfony\Component\Process\Process;
 
 class ProcessExecutor
@@ -58,37 +57,6 @@ class ProcessExecutor
     }
 
     /**
-     * Check process existence and belongs to artisan before killing.
-     * @param Execution $executionRecord
-     * @return int[]
-     */
-    public function getSubProcessIds(Execution $executionRecord): array
-    {
-        $process = $this->executeCommand("ps aux | grep '{$executionRecord->job_uuid}'");
-        $output = collect(explode("\n", $process->getOutput()))
-            ->filter()
-            ->map(fn($psLine) => array_filter(explode(" ", $psLine))[1]);
-
-        return $output->values()->all();
-    }
-
-    /**
-     * Process killer
-     * @param Execution $executionRecord
-     * @return void
-     */
-    public function killProcess(Execution $executionRecord): bool
-    {
-        if (!$pids = $this->getSubProcessIds($executionRecord)) {
-            return false;
-        }
-
-        $process = $this->executeCommand("kill -9 " . join(" ", $pids));
-
-        return (bool)$process->getPid();
-    }
-
-    /**
      * Append input to file.
      * @param $filePath
      * @param $input
@@ -106,19 +74,33 @@ class ProcessExecutor
         string $uuid
     ): string {
         $output  = ProcessUtils::escapeArgument($output);
-
-        $command = Application::formatCommandString("remotisan:execute {$uuid}") . " > {$output}; " .
-            Application::formatCommandString("remotisan:complete {$uuid}");
+        $command = Application::formatCommandString("remotisan:broker {$uuid}") . " > {$output};";
 
         // As background
         return '(' . $command . ') 2>&1 &';
     }
 
+    /**
+     * @deprecated shall be deprecated soon.
+     * @param string $params
+     * @return string
+     */
     public function escapeParamsString(string $params): string
     {
-        return $this->compileParamsArray(
+        return implode(' ', $this->compileParamsArray(
             $this->parseParamsString($params)
-        );
+        ));
+    }
+
+    /**
+     * Splits parameters string into parameters array with escaping and return the array.
+     *
+     * @param string $params
+     * @return array
+     */
+    public function compileCmdAsEscapedArray(string $params): array
+    {
+        return $this->compileParamsArray($this->parseParamsString($params));
     }
 
     /**
@@ -127,10 +109,10 @@ class ProcessExecutor
      * Copied from \Illuminate\Console\Scheduling\Schedule::compileParameters
      * Thanks to Laravel Team
      *
-     * @param  array  $params
-     * @return string
+     * @param   array   $params
+     * @return  array
      */
-    protected function compileParamsArray(array $params): string
+    protected function compileParamsArray(array $params): array
     {
         return collect($params)->map(function ($value, $key) {
             if (is_array($value)) {
@@ -142,7 +124,7 @@ class ProcessExecutor
             }
 
             return is_numeric($key) ? $value : "{$key}={$value}";
-        })->implode(' ');
+        })->values()->all();
     }
 
     /**
@@ -151,11 +133,11 @@ class ProcessExecutor
      * Copied from \Illuminate\Console\Scheduling\Schedule::compileArrayInput
      * Thanks to Laravel Team
      *
-     * @param  string|int  $key
-     * @param  array  $value
-     * @return string
+     * @param   string|int  $key
+     * @param   array       $value
+     * @return  array
      */
-    protected function compileArrayInput($key, $value)
+    public function compileArrayInput($key, $value): array
     {
         $value = collect($value)->map(function ($value) {
             return ProcessUtils::escapeArgument($value);
@@ -171,12 +153,11 @@ class ProcessExecutor
             });
         }
 
-        return $value->implode(' ');
+        return $value->values()->all();
     }
 
     /**
      * Convert a string of command arguments and options to an array.
-     *
      *
      * Copied from \Studio\Totem\Task::compileParameters
      * Thanks to Totem Team (codestudiohq)
@@ -185,7 +166,7 @@ class ProcessExecutor
      *
      * @return array
      */
-    protected function parseParamsString($parameters, $console = false)
+    public function parseParamsString($parameters, $console = false)
     {
         if ($parameters) {
             $regex = '/(?=\S)[^\'"\s]*(?:\'[^\']*\'[^\'"\s]*|"[^"]*"[^\'"\s]*)*/';
