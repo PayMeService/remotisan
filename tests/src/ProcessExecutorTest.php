@@ -17,6 +17,13 @@ class ProcessExecutorTest extends TestCase
 
     public function testEscapesParams()
     {
+        $arr1 = "--arr='1'";
+        $arr2 = "--arr='2'";
+        if (PHP_OS_FAMILY === "Windows") {
+            $arr1 = '--arr="1"';
+            $arr2 = '--arr="2"';
+        }
+
         $this->assertEquals(
             [
                 0 => "firstArg",
@@ -26,8 +33,8 @@ class ProcessExecutorTest extends TestCase
                 4 => "--firstOpt=first-value",
                 5 => "--second=sec val",
                 6 => [
-                    "--arr='1'",
-                    "--arr='2'",
+                    $arr1,
+                    $arr2,
                 ],
                 7 => ";",
                 8 => "php",
