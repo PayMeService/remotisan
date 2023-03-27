@@ -17,34 +17,52 @@ class ProcessExecutorTest extends TestCase
 
     public function testEscapesParams()
     {
-        $arr1 = "--arr='1'";
-        $arr2 = "--arr='2'";
+        $expectedArray = [
+            0 => "firstArg",
+            1 => "SecondArg",
+            2 => "argWith=equalsSign",
+            3 => "--emptyOpt=1",
+            4 => "--firstOpt=first-value",
+            5 => "--second=sec val",
+            6 => [
+                "--arr='1'",
+                "--arr='2'",
+            ],
+            7 => ";",
+            8 => "php",
+            9 => "artisan",
+            10 => "--version=1",
+            11 => "||",
+            12 => "php",
+            13 => "artisan",
+            14 => "migrate:status",
+        ];
+
         if (PHP_OS_FAMILY === "Windows") {
-            $arr1 = '--arr="1"';
-            $arr2 = '--arr="2"';
+            $expectedArray = [
+                0 => '"firstArg"',
+                1 => '"SecondArg"',
+                2 => 'argWith="equalsSign"',
+                3 => '--emptyOpt="1"',
+                4 => '--firstOpt="first-value"',
+                5 => '--second="sec val"',
+                6 => [
+                    '--arr="1"',
+                    '--arr="2"',
+                ],
+                7 => '";"',
+                8 => '"php"',
+                9 => '"artisan"',
+                10 => '--version="1"',
+                11 => '"||"',
+                12 => '"php"',
+                13 => '"artisan"',
+                14 => '"migrate:status"',
+            ];
         }
 
         $this->assertEquals(
-            [
-                0 => "firstArg",
-                1 => "SecondArg",
-                2 => "argWith=equalsSign",
-                3 => "--emptyOpt=1",
-                4 => "--firstOpt=first-value",
-                5 => "--second=sec val",
-                6 => [
-                    $arr1,
-                    $arr2,
-                ],
-                7 => ";",
-                8 => "php",
-                9 => "artisan",
-                10 => "--version=1",
-                11 => "||",
-                12 => "php",
-                13 => "artisan",
-                14 => "migrate:status",
-            ],
+            $expectedArray,
             $this->processExecutor->compileCmdAsEscapedArray('firstArg SecondArg argWith=equalsSign --emptyOpt --firstOpt=first-value --second="sec val" --arr=1 --arr=2 ; php artisan --version || php artisan migrate:status')
         );
     }
