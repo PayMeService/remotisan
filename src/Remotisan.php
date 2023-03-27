@@ -1,7 +1,6 @@
 <?php
 namespace PayMe\Remotisan;
 
-use Carbon\Carbon;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Str;
@@ -13,15 +12,17 @@ class Remotisan
 {
     private CommandsRepository $commandsRepo;
     /** @var callable[] */
+
     private static array $authWith = [];
+
     private ProcessExecutor $processExecutor;
 
     protected static $userIdentifierGetter;
 
 
     /**
-     * @param CommandsRepository $commandsRepo
-     * @param ProcessExecutor    $processExecutor
+     * @param   CommandsRepository  $commandsRepo
+     * @param   ProcessExecutor     $processExecutor
      */
     public function __construct(CommandsRepository $commandsRepo, ProcessExecutor $processExecutor)
     {
@@ -30,8 +31,8 @@ class Remotisan
     }
 
     /**
-     * @param string $command
-     * @param string $params
+     * @param   string  $command
+     * @param   string  $params
      *
      * @return string
      */
@@ -94,10 +95,10 @@ class Remotisan
     }
 
     /**
-     * @param          $role
-     * @param callable $callable
+     * @param               $role
+     * @param   callable    $callable
      *
-     * @return void
+     * @return  void
      */
     public function authWith($role, callable $callable): void
     {
@@ -105,7 +106,7 @@ class Remotisan
     }
 
     /**
-     * @return string
+     * @return  string
      */
     public function getUserIdentifier(): ?string
     {
@@ -113,8 +114,8 @@ class Remotisan
     }
 
     /**
-     * @param callable $userIdentifierGetter
-     * @return void
+     * @param   callable    $userIdentifierGetter
+     * @return  void
      */
     public function setUserIdentifierGetter(callable $userIdentifierGetter):void
     {
@@ -122,7 +123,7 @@ class Remotisan
     }
 
     /**
-     * @return string|null
+     * @return  string|null
      */
     public function getUserGroup(): ?string
     {
@@ -135,8 +136,8 @@ class Remotisan
     }
 
     /**
-     * @return void
-     * @throws UnauthenticatedException
+     * @return  void
+     * @throws  UnauthenticatedException
      */
     public function requireAuthenticated(): void
     {
@@ -149,7 +150,7 @@ class Remotisan
      * checks whether current user is super user according to user identifier.
      * Implementer have to be careful configuring super users used identifiers
      *
-     * @return bool
+     * @return  bool
      */
     public function isSuperUser(): bool
     {
@@ -158,6 +159,9 @@ class Remotisan
         return in_array("*", $supers) || in_array($this->getUserIdentifier(), $supers);
     }
 
+    /**
+     * @return  ProcessExecutor
+     */
     public function getProcessExecutor(): ProcessExecutor
     {
         return $this->processExecutor;

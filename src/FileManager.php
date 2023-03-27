@@ -7,7 +7,7 @@ use PayMe\Remotisan\Models\Execution;
 
 class FileManager
 {
-    const SERVER_UUID_FILE_NAME     = "remotisan_server_guid";
+    const SERVER_UUID_FILE_NAME = "remotisan_server_guid";
 
     protected static string $server_uuid = "";
 
