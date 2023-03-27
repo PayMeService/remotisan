@@ -11,7 +11,6 @@ namespace PayMe\Remotisan;
 use Illuminate\Console\Application;
 use Illuminate\Support\ProcessUtils;
 use Illuminate\Support\Str;
-use PayMe\Remotisan\Exceptions\ProcessFailedException;
 use Symfony\Component\Process\Process;
 
 class ProcessExecutor
@@ -36,39 +35,6 @@ class ProcessExecutor
         return $pid;
     }
 
-    /**
-     * Simple command executor. Handles the execution and return the process for future work with it.
-     * Be it checks, or getOutput() or any other further manipulation on process object.
-     *
-     * @param string $cmd
-     * @return Process
-     */
-    public function executeCommand(string $cmd): Process
-    {
-        $process = Process::fromShellCommandline($cmd, base_path());
-        $process->enableOutput();
-        $process->run();
-
-        if (!$process->isSuccessful()) {
-            throw new ProcessFailedException($process->getErrorOutput());
-        }
-
-        return $process;
-    }
-
-    /**
-     * Append input to file.
-     * @param $filePath
-     * @param $input
-     * @return int
-     */
-    public function appendInputToFile($filePath, $input): int
-    {
-        $process = $this->executeCommand("echo \"{$input}\" >> {$filePath}");
-
-        return (bool)$process->getPid();
-    }
-
     public function compileShell(
         string $output,
         string $uuid
@@ -78,18 +44,6 @@ class ProcessExecutor
 
         // As background
         return '(' . $command . ') 2>&1 &';
-    }
-
-    /**
-     * @deprecated shall be deprecated soon.
-     * @param string $params
-     * @return string
-     */
-    public function escapeParamsString(string $params): string
-    {
-        return implode(' ', $this->compileParamsArray(
-            $this->parseParamsString($params)
-        ));
     }
 
     /**

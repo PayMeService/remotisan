@@ -11,9 +11,6 @@ use PayMe\Remotisan\Models\Execution;
 
 class Remotisan
 {
-    const INSTANCE_VIOLATION_MSG    = "Instance violation";
-    const KILL_FAILED_MSG           = "Kill failed";
-
     private CommandsRepository $commandsRepo;
     /** @var callable[] */
     private static array $authWith = [];

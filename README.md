@@ -9,7 +9,7 @@ The package allows you to execute artisan commands remotely, using HTTP, and rec
 
 **Your command execution won't run into server's MAX_EXECUTION_TIME**, allowing you to preserve original server configuration.
 
-In general, the package could very well assist transitioning your project to CI/CD with auto-scaling, when supporters have no direct access to the server terminal.
+In general, the package could very well assist transitioning your project to CI/CD with auto-scaling, when support/devops/developers have no direct access to the server terminal.
 
 ## Installation
 
@@ -19,7 +19,7 @@ Use composer to install *Remotisan* to your Laravel project. php7.4+ is required
 composer require paymeservice/remotisan
 ```
 
-You can publish the config file with:
+You can ( and probably should;) ) publish the config file with:
 
 ```bash
 php artisan vendor:publish --tag="remotisan-config"
@@ -38,6 +38,8 @@ php artisan vendor:publish --tag="remotisan-views"
 - Add any command you wish to be exposed to *Remotisan* in config, by adjusting the following part.
 
 Note: UserRoles class is NOT provided, for demonstration purpose only!
+
+Use your own model for Access control layer.
 ```php
 [
     "commands" =>   [
@@ -61,7 +63,7 @@ REMOTISAN_ALLOWED_COMMANDS='{"artisanCommandName":{"roles":[]}, "artisanSecondCo
 ## Authentication
 Inside your `AppServiceProvider::boot()` add calls to `\Remotisan::authWith($role, $callable)`.
 
-Callable receive a `\Illuminate\Http\Request` instance and should return true if the request (probably by the user) matches the given role.
+Callable receives `\Illuminate\Http\Request` instance and should return true if the request matches the given role.
 
 The roles **MUST** be matching to the roles you've defined in _Remotisan_ config.
 ```php
@@ -84,31 +86,32 @@ As well, have to implement you custom UserIdentifierGetter in AppServiceProvider
         Remotisan::setUserIdentifierGetter(function (HttpRequest $request) {
             /** @var User|null $user */
             $user = $request->user("web");
-            return $user ? $user->getDisplayName() : "Unknown";
+            return $user->getDisplayName();
         });
 ```
 
 ## Audit
 Implementer have to run migrate after package installation, thus package will create its own history/audit table.
 The audit table logs executions and allows the user to see who executed and what, as well as killing running processes. 
-Audit table is MUST for the killing mechanism to work, as well as instance identifier we will cover in next section.
+Audit table is **_MUST_** for the killing mechanism to work, as well as instance identifier we will cover in next section.
+The table named _**remotisan_executions**_, avoid dropping.
 
 ## Instance identifier
-Since the application may run in a multi-instance environment with no direct ssh access to servers, we have to identify instance the remotisan set at.
-The way it is done is automagically from the code, on the access to remotisan we tag the server with GUID. 
+Since the application may run in a multi-instance environment with no direct ssh access to servers, we have to identify instance the remotisan installed at.
+The way it is done is "automagically" from the code, on the access to remotisan we tag the server with GUID. 
 
 *NOTE: If the server had remotisan deployed, it is already tagged and won't be re-tagged, to continue work on existing killing list (if such already exist).* 
 
 The server GUID is written into local file within laravel's storage on specific instance and later on used for killing jobs.
 
 ## Multi-instance requirements
-In a multi-instance environment you MUST implement Audit, Instance Identifier, User Identifier sections.
+In a multi-instance environment you MUST implement Audit, User Identifier sections.
 As well, you would like to use Redis (memcached, or other shared) cache for proper communication between instances and process killer task.
-In additional, you would like to create supervisor worker to run `php artisan remotisan:process-killer` in each instance.
+
 ### Technical details
-The package sends kill signals into redis with its server identifier and the job's guid, later on the process-killer job picks them according to instance the killer runs at, and attempt to kill.
-Before killing, the killer will write "PROCESS KILLED AT {DATETIME}" into the running job's log and kill it with `kill -9` aka SIG_KILL.
-Before the kill, the job would ensure the process belongs to artisan with the command name and in case confirmed, would proceed with kill.
+The package sends kill signals into redis with its server identifier and the job's guid, later on, the remotisan:broker accesses redis to check for kills, and in case it spots the job uuid within the killing list, it would send SIG_KILL to the process.
+
+Before killing, the job will wring to job's log "PROCESS KILLED BY {USER_IDENTIFIER} AT {DATETIME}".
 
 ## Super User
 To allow super user or a supervisor to kill ANY running job, you would like to state user_identifiers you use within remotisan config's section `super_users` which is array/list of super users.
@@ -137,6 +140,7 @@ Please review [our security policy](../../security/policy) on how to report secu
 
 ## Credits
 
+- PayMe Ltd. is the main contributor
 - [kima](https://github.com/PayMeService)
 - [All Contributors](../../contributors)
 
