@@ -80,9 +80,10 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
         $this->process->wait(function ($type, $buffer) use ($pathToLog, &$sigTime, &$signals) {
             file_put_contents($pathToLog, $buffer, FILE_APPEND);
             if ($this->process->isRunning() && $this->killInstructions = CacheManager::getKillInstruction($this->execution->job_uuid)) {
-                if($sigTime > now()+5 || $sigTime === 0) {
+                $nowTime = time();
+                if($sigTime > $nowTime+5 || $sigTime === 0) {
                     $this->process->signal((!empty($signals) ? array_shift($signals) : SIGKILL));
-                    $sigTime = time();
+                    $sigTime = $nowTime;
                 }
             }
 
