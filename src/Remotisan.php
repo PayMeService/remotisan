@@ -10,6 +10,11 @@ use PayMe\Remotisan\Models\Execution;
 
 class Remotisan
 {
+
+    const SERVER_UUID_FILE_NAME = "remotisan_server_guid";
+
+    protected static string $server_uuid = "";
+
     private CommandsRepository $commandsRepo;
     /** @var callable[] */
 
@@ -18,6 +23,8 @@ class Remotisan
     private ProcessExecutor $processExecutor;
 
     protected static $userIdentifierGetter;
+
+
 
 
     /**
@@ -46,7 +53,7 @@ class Remotisan
         $uuid = Str::uuid()->toString();
         Execution::create([
             "job_uuid"      => $uuid,
-            "server_uuid"   => FileManager::getServerUuid(),
+            "server_uuid"   => self::getServerUuid(),
             "executed_at"   => time(),
             "command"       => $command,
             "parameters"    => $params,
@@ -70,7 +77,7 @@ class Remotisan
     {
         $executionRecord = null;
 
-        if(config("remotisan.allow_process_kill", false) === true) {
+        if(config("remotisan.allow_process_kill", false)) {
             $executionRecord = Execution::getByJobUuid($uuid);
         }
 
@@ -86,12 +93,29 @@ class Remotisan
             throw new UnauthenticatedException("Action Not Allowed.", 422);
         }
 
-        $executionRecord->killed_by = $this->getUserIdentifier();
-        $executionRecord->save();
-
-        CacheManager::addKillInstruction($uuid);
+        CacheManager::addKillInstruction($uuid, $this->getUserIdentifier());
 
         return $uuid;
+    }
+
+    /**
+     * Get instance uuid from storage created during app deployment
+     *
+     * @return  string
+     * @throws \Exception
+     */
+    public static function getServerUuid(): string
+    {
+        if (!static::$server_uuid) {
+            static::$server_uuid = cache()
+                ->driver("file")
+                ->rememberForever(
+                    static::SERVER_UUID_FILE_NAME,
+                    fn() => Str::uuid()->toString()
+                );
+        }
+
+        return static::$server_uuid;
     }
 
     /**

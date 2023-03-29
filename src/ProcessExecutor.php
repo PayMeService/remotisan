@@ -88,9 +88,9 @@ class ProcessExecutor
      * @param  string  $char
      * @return bool
      */
-    protected static function isSurroundedBy($arg, $char)
+    protected static function isSurroundedBy(string $arg, string $char): bool
     {
-        return 2 < strlen($arg) && $char === $arg[0] && $char === $arg[strlen($arg) - 1];
+        return 2 < strlen($arg) && Str::startsWith($arg, $char) && Str::endsWith($arg, $char);
     }
 
     /**
@@ -99,7 +99,7 @@ class ProcessExecutor
      * @param  string  $argument
      * @return string
      */
-    public static function escapeArgument($argument)
+    public static function escapeArgument(string $argument): string
     {
         // Fix for PHP bug #43784 escapeshellarg removes % from given string
         // Fix for PHP bug #49446 escapeshellarg doesn't work on Windows

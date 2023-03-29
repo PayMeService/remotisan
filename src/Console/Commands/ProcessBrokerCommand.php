@@ -11,12 +11,14 @@ namespace PayMe\Remotisan\Console\Commands;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use PayMe\Remotisan\CacheManager;
+use PayMe\Remotisan\Exceptions\RecordNotFoundException;
 use PayMe\Remotisan\FileManager;
 use PayMe\Remotisan\Models\Execution;
 use PayMe\Remotisan\Remotisan;
+use Symfony\Component\Console\Command\SignalableCommandInterface;
 use Symfony\Component\Process\Process;
 
-class ProcessBrokerCommand extends Command
+class ProcessBrokerCommand extends Command implements SignalableCommandInterface
 {
     /**
      * The name and signature of the console command.
@@ -32,49 +34,86 @@ class ProcessBrokerCommand extends Command
      */
     protected $description = "Remotisan's jobs broker";
 
+    protected Execution $execution;
+    protected ?Process $process = null;
+    protected ?array $killInstructions = null;
+    protected bool $isProcessErroneous = false;
+
+    const SIGNAL_KILLING_NAME = "External kill";
+
     public function handle(Remotisan $remotisan)
     {
-        $isProcessKilled = false;
-        $isProcessErroneous = false;
-        $executionRecord = Execution::getByJobUuid($this->argument("uuid"));
-        $pathToLog = FileManager::getLogFilePath($executionRecord->job_uuid);
+        $execution = Execution::getByJobUuid($uuid = $this->argument("uuid"));
+        if (!$execution) {
+            throw new RecordNotFoundException($uuid);
+        }
+        $this->execution = $execution;
+
         $commandArray = array_merge(
-            explode(' ', "php artisan " . $executionRecord->command),
-            $remotisan->getProcessExecutor()->compileCmdAsEscapedArray($executionRecord->parameters)
+            explode(' ', "php artisan " . $this->execution->command),
+            $remotisan->getProcessExecutor()->compileCmdAsEscapedArray($this->execution->parameters)
         );
 
-        $process = new Process($commandArray, base_path());
-        $process->start();
+        $this->runProcess($commandArray);
 
-        $exitCode = $process->wait(function ($type, $buffer) use (&$isProcessKilled, &$isProcessErroneous, $executionRecord, $pathToLog, &$process) {
+        if ($this->killInstructions) {
+            $this->setKilled();
+        } elseif ($this->isProcessErroneous || !$this->process->isSuccessful()) {
+            $this->execution->markFailed();
+        } else {
+            $this->execution->markCompleted();
+        }
+    }
+
+    /**
+     * @param array $commandArray
+     */
+    protected function runProcess(array $commandArray): void
+    {
+        $pathToLog = FileManager::getLogFilePath($this->execution->job_uuid);
+
+        $this->process = new Process($commandArray, base_path());
+        $this->process->start();
+
+        $this->process->wait(function ($type, $buffer) use ($pathToLog) {
             file_put_contents($pathToLog, $buffer, FILE_APPEND);
-            if ($process->isRunning() && CacheManager::hasKillInstruction($executionRecord->job_uuid)) {
-                $isProcessKilled = true;
-                $process->signal(9);
+            if ($this->process->isRunning() && $this->killInstructions = CacheManager::getKillInstruction($this->execution->job_uuid)) {
+                $this->process->signal(SIGKILL);
             }
 
             if (Process::ERR === $type) {
-                $isProcessErroneous = true;
+                $this->isProcessErroneous = true;
             }
         });
+    }
 
-        $executionRecord->refresh();
+    protected function setKilled(): void
+    {
+        $this->execution->killed_by = $this->killInstructions["name"];
 
-        if ($isProcessKilled) {
+        $killNote = "\n=============
+            \nPROCESS KILLED BY {$this->execution->killed_by} AT " . ((string)Carbon::parse()) . " \n";
+        file_put_contents(FileManager::getLogFilePath($this->execution->job_uuid), $killNote, FILE_APPEND);
 
-            $killNote = "\n=============
-            \nPROCESS KILLED BY {$executionRecord->killed_by} AT " . ((string)Carbon::parse()) . " \n";
-            file_put_contents($pathToLog, $killNote, FILE_APPEND);
-            CacheManager::removeKillInstruction($executionRecord->job_uuid);
-            $executionRecord->markKilled();
+        CacheManager::removeKillInstruction($this->execution->job_uuid);
 
-            return;
-        }
+        $this->execution->markKilled();
+    }
 
-        if (($isProcessErroneous && $exitCode != 0) || !$process->isSuccessful()) {
-            $executionRecord->markFailed();
-        } else {
-            $executionRecord->markCompleted();
-        }
+    public function getSubscribedSignals(): array
+    {
+        return [SIGINT, SIGKILL, SIGTERM, SIGQUIT];
+    }
+
+    public function handleSignal(int $signal): void
+    {
+        $this->killInstructions = [
+            "name" => self::SIGNAL_KILLING_NAME,
+            "time" => time()
+        ];
+
+        $this->process->signal($signal);
+
+        $this->setKilled();
     }
 }

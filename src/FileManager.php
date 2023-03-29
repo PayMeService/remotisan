@@ -7,24 +7,6 @@ use PayMe\Remotisan\Models\Execution;
 
 class FileManager
 {
-    const SERVER_UUID_FILE_NAME = "remotisan_server_guid";
-
-    protected static string $server_uuid = "";
-
-    /**
-     * Get instance uuid from storage created during app deployment
-     *
-     * @return  string
-     * @throws  \Illuminate\Contracts\Filesystem\FileNotFoundException
-     */
-    public static function getServerUuid():string
-    {
-        if (!static::$server_uuid) {
-            static::$server_uuid = cache()->driver("file")->rememberForever(static::SERVER_UUID_FILE_NAME, fn() => Str::uuid()->toString());
-        }
-
-        return static::$server_uuid;
-    }
 
     /**
      * Reads the logfile and returns its content + isEnded for front end.

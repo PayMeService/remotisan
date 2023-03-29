@@ -10,41 +10,45 @@ class CacheManager
     /**
      * add kill signal to the cache storage.
      *
-     * @param   string  $uuid
+     * @param string      $uuid
+     * @param string|null $killerName
      */
-    public static function addKillInstruction(string $uuid): void
+    public static function addKillInstruction(string $uuid, ?string $killerName): void
     {
-        static::storeKillUuids(static::getKillUuids()->push($uuid)->unique());
+        $killList = static::getKillUuids();
+        $killList->offsetSet($uuid, [
+            "name" => $killerName,
+            "time" => time()
+        ]);
+        static::storeKillUuids($killList);
     }
 
     /**
      * Remove kill signal
      *
      * @param   string  $uuid
-     * @return  string
+     * @return  void
      */
-    public static function removeKillInstruction(string $uuid): string
+    public static function removeKillInstruction(string $uuid): void
     {
-        $valuesCollection = static::getKillUuids();
+        $killList = static::getKillUuids();
 
-        if (false !== ($key = $valuesCollection->search($uuid, true))) {
-            $valuesCollection->forget($key);
-            static::storeKillUuids($valuesCollection);
+        if ($killList->offsetExists($uuid)) {
+            $killList->offsetUnset($uuid);
+            static::storeKillUuids($killList);
         }
-
-        return $uuid;
     }
 
     /**
      * Check whether provided UUID is in killing list for THIS server.
-     * and return boolean.
+     * and return array.
      *
      * @param   string $uuid
-     * @return  bool
+     * @return  ?array
      */
-    public static function hasKillInstruction(string $uuid): bool
+    public static function getKillInstruction(string $uuid): ?array
     {
-        return false !== static::getKillUuids()->search($uuid, true);
+        return static::getKillUuids()->offsetExists($uuid) ? static::getKillUuids()->offsetGet($uuid) : null;
     }
 
     /**
@@ -86,6 +90,6 @@ class CacheManager
      */
     public static function makeCacheKey(): string
     {
-        return implode(":", [config("remotisan.kill_switch_key_prefix"), App::environment(), FileManager::getServerUuid()]);
+        return implode(":", [config("remotisan.kill_switch_key_prefix"), App::environment(), Remotisan::getServerUuid()]);
     }
 }
