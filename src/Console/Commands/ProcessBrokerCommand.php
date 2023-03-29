@@ -74,11 +74,16 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
 
         $this->process = new Process($commandArray, base_path());
         $this->process->start();
+        $sigTime = 0;
+        $signals = $this->getSubscribedSignals();
 
-        $this->process->wait(function ($type, $buffer) use ($pathToLog) {
+        $this->process->wait(function ($type, $buffer) use ($pathToLog, &$sigTime, &$signals) {
             file_put_contents($pathToLog, $buffer, FILE_APPEND);
             if ($this->process->isRunning() && $this->killInstructions = CacheManager::getKillInstruction($this->execution->job_uuid)) {
-                $this->process->signal(SIGKILL);
+                if($sigTime > now()+5 || $sigTime === 0) {
+                    $this->process->signal((!empty($signals) ? array_shift($signals) : SIGKILL));
+                    $sigTime = time();
+                }
             }
 
             if (Process::ERR === $type) {
@@ -102,7 +107,7 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
 
     public function getSubscribedSignals(): array
     {
-        return [SIGINT, SIGKILL, SIGTERM, SIGQUIT];
+        return [SIGQUIT, SIGINT, SIGTERM, SIGKILL];
     }
 
     public function handleSignal(int $signal): void
