@@ -72,20 +72,25 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
         $sigTime = 0;
         $signals = $this->killSignalsList;
 
-        return $this->process->wait(function ($type, $buffer) use ($executionRecord, &$sigTime, &$signals) {
-            file_put_contents($this->pathToLog, $buffer, FILE_APPEND);
-            if ($this->process->isRunning() && CacheManager::hasKillInstruction($executionRecord->job_uuid)) {
-                $nowTime = time();
-                if($sigTime+5 < $nowTime) {
-                    $this->isKilled = true;
-                    $this->process->signal((!empty($signals) ? array_shift($signals) : SIGKILL));
+        try {
+            return $this->process->wait(function ($type, $buffer) use ($executionRecord, &$sigTime, &$signals) {
+                file_put_contents($this->pathToLog, $buffer, FILE_APPEND);
+                if ($this->process->isRunning() && CacheManager::hasKillInstruction($executionRecord->job_uuid)) {
+                    $nowTime = time();
+                    if ($sigTime + 5 < $nowTime) {
+                        $this->isKilled = true;
+                        $this->process->signal((!empty($signals) ? array_shift($signals) : SIGKILL));
+                    }
                 }
-            }
 
-            if (Process::ERR === $type) {
-                $this->isErroneous = true;
-            }
-        });
+                if (Process::ERR === $type) {
+                    $this->isErroneous = true;
+                }
+            });
+        } catch (\Throwable $e)
+        {
+            $this->isErroneous = true;
+        }
     }
 
     /**
@@ -127,11 +132,10 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
      * Flag record killed, failed and completed.
      *
      * @param   Execution   $executionRecord
-     * @param   int         $exitCode
      *
      * @return void
      */
-    protected function postExecutionProcessing(Execution $executionRecord, int $exitCode)
+    protected function postExecutionProcessing(Execution $executionRecord)
     {
         $executionRecord->refresh();
         if ($this->isKilled) {
@@ -140,7 +144,7 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
             return;
         }
 
-        if ($this->isErroneous  || !$this->process->isSuccessful()) {
+        if ($this->isErroneous || !$this->process->isSuccessful()) {
             $executionRecord->markFailed();
         } else {
             $executionRecord->markCompleted();
