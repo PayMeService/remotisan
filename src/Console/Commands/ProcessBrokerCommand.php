@@ -45,7 +45,7 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
 
     protected Execution $executionRecord;
 
-    protected array $killSignalsList = [SIGQUIT, SIGINT, SIGTERM, SIGHUP];
+    protected array $killSignalsList = [3, 2, 15, 1]; //SIGQUIT, SIGINT, SIGTERM, SIGHUP
 
     protected int $recentSignalTime = 0;
 
@@ -77,7 +77,7 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
                 if ($this->process->isRunning() && CacheManager::hasKillInstruction($executionRecord->job_uuid) && $this->recentSignalTime + 5 < time()) {
                     $this->isKilled = true;
                     $this->recentSignalTime = time();
-                    $this->process->signal((!empty($this->killSignalsList) ? array_shift($this->killSignalsList) : SIGKILL));
+                    $this->process->signal((!empty($this->killSignalsList) ? array_shift($this->killSignalsList) : 9));
                 }
 
                 if (Process::ERR === $type) {
