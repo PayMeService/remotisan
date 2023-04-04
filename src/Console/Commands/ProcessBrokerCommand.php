@@ -60,9 +60,9 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
     /**
      * Executes the command, first building using buildCommandArray. Writes into log and returns exit code
      *
+     * @param   Execution   $executionRecord
      *
-     * @param Execution $executionRecord
-     * @return int exitCode
+     * @return  int         exitCode
      */
     protected function executeProcess(Execution $executionRecord): int
     {
@@ -91,8 +91,9 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
     /**
      * Building array of command for Process to use.
      *
-     * @param Execution $executionRecord
-     * @return array
+     * @param   Execution   $executionRecord
+     *
+     * @return  array
      */
     protected function buildCommandArray(Execution $executionRecord): array
     {
@@ -108,8 +109,9 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
      *      (2) remove instruction from cache
      *      (3) mark execution record killed
      *
-     * @param Execution $executionRecord
-     * @return void
+     * @param   Execution   $executionRecord
+     *
+     * @return  void
      */
     protected function postKill(Execution $executionRecord): void
     {
@@ -124,8 +126,9 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
      * Post execution processing responsible for processing exitCode and process results, then act upon it.
      * Flag record killed, failed and completed.
      *
-     * @param Execution $executionRecord
-     * @param int $exitCode
+     * @param   Execution   $executionRecord
+     * @param   int         $exitCode
+     *
      * @return void
      */
     protected function postExecutionProcessing(Execution $executionRecord, int $exitCode)
@@ -144,11 +147,19 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
         }
     }
 
+    /**
+     * @return  array
+     */
     public function getSubscribedSignals(): array
     {
         return $this->killSignalsList;
     }
 
+    /**
+     * @param   int     $signal
+     *
+     * @return  void
+     */
     public function handleSignal(int $signal): void
     {
         $this->isKilled = true;
