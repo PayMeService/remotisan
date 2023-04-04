@@ -53,8 +53,8 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
         $this->executionRecord = Execution::getByJobUuid($this->argument("uuid"));
         $this->pathToLog = FileManager::getLogFilePath($this->executionRecord->job_uuid);
 
-        $exitCode = $this->executeProcess($this->executionRecord);
-        $this->postExecutionProcessing($this->executionRecord, $exitCode);
+        $this->executeProcess($this->executionRecord);
+        $this->postExecutionProcessing($this->executionRecord);
     }
 
     /**
