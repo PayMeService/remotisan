@@ -47,6 +47,8 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
 
     protected array $killSignalsList = [SIGQUIT, SIGINT, SIGTERM, SIGHUP];
 
+    protected int $recentSignalTime = 0;
+
     public function handle(Remotisan $remotisan)
     {
         $this->remotisan = $remotisan;
@@ -62,25 +64,20 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
      *
      * @param   Execution   $executionRecord
      *
-     * @return  int         exitCode
+     * @return  void
      */
-    protected function executeProcess(Execution $executionRecord): int
+    protected function executeProcess(Execution $executionRecord): void
     {
-        $this->process = new Process($this->buildCommandArray($executionRecord), base_path());
-        $this->process->setTimeout(null);
+        $this->initializeProcess($executionRecord);
         $this->process->start();
-        $sigTime = 0;
-        $signals = $this->killSignalsList;
 
         try {
-            return $this->process->wait(function ($type, $buffer) use ($executionRecord, &$sigTime, &$signals) {
+            $this->process->wait(function ($type, $buffer) use ($executionRecord) {
                 file_put_contents($this->pathToLog, $buffer, FILE_APPEND);
-                if ($this->process->isRunning() && CacheManager::hasKillInstruction($executionRecord->job_uuid)) {
-                    $nowTime = time();
-                    if ($sigTime + 5 < $nowTime) {
-                        $this->isKilled = true;
-                        $this->process->signal((!empty($signals) ? array_shift($signals) : SIGKILL));
-                    }
+                if ($this->process->isRunning() && CacheManager::hasKillInstruction($executionRecord->job_uuid) && $this->recentSignalTime + 5 < time()) {
+                    $this->isKilled = true;
+                    $this->recentSignalTime = time();
+                    $this->process->signal((!empty($this->killSignalsList) ? array_shift($this->killSignalsList) : SIGKILL));
                 }
 
                 if (Process::ERR === $type) {
@@ -91,6 +88,13 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
         {
             $this->isErroneous = true;
         }
+    }
+
+    protected function initializeProcess(Execution $executionRecord): Process
+    {
+        $this->process = new Process($this->buildCommandArray($executionRecord), base_path());
+        $this->process->setTimeout(null);
+        return $this->process;
     }
 
     /**
