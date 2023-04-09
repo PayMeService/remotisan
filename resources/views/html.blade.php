@@ -32,7 +32,7 @@
     </form>
 
     <div class="history-wrapper"> <!-- show when history button clicked! -->
-        <span title="show-hide history" data-ng-click="showHistory = !showHistory;"><strong><span data-ng-hide="!showHistory">Hide</span><span data-ng-hide="showHistory">Show</span> History</strong></span>
+        <button title="show-hide history"  data-ng-click="showHistory = !showHistory;"><span data-ng-hide="!showHistory">Hide</span><span data-ng-hide="showHistory">Show</span> History</button>
         <div data-ng-show="showHistory">
             <table class="table table-bordered">
                 <thead class="thead-dark">
@@ -58,6 +58,7 @@
                     <td>@{{log_data.finished_at*1000 | date: 'yyyy-MM-dd HH:mm:ss'}}</td>
                     <td>
                         <span data-ng-if="log_data.process_status == 1" data-ng-click="killProcess(log_data.job_uuid)" class="label label-danger" style="cursor: pointer;">Kill Process</span><!-- set history data (the pid) -->
+                        <span data-ng-click="reRun(log_data.command, log_data.parameters)" class="label label-info" style="cursor: pointer;">Re-Run</span>
                     </td>
                 </tr>
                 </tbody>

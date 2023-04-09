@@ -37,7 +37,7 @@ $scope.readLog();
 };
 
 $scope.statusCodeToHumanReadable = function (status_code) {
-    return $scope.proc_statuses[status_code];
+return $scope.proc_statuses[status_code];
 }
 
 $scope.locationPath = function (newPath)
@@ -49,7 +49,24 @@ $scope.onChangeDropdownValue = function () {
 $scope.params = '';
 };
 
+$scope.reRun = function(command, parameters) {
+$scope.command = command;
+$scope.params = parameters;
+$scope.execute();
+}
+
+$scope.switchLoader = function() {
+
+}
+
+$scope.switchSubmitButton = function() {
+
+}
+
 $scope.execute = function () {
+$scope.switchLoader();
+$scope.switchSubmitButton();
+// show loader
 $http.post($scope.baseUrl + "/execute", {
 command: $scope.command,
 params: $scope.params
@@ -62,8 +79,16 @@ $scope.readLog();
 );
 }, function (response) {
 console.log(response);
+}, function (response) {
+$scope.switchLoader();
+$scope.switchSubmitButton();
+$scope.refreshHistoryIfNeeded();
 });
 };
+
+$scope.refreshHistoryIfNeeded = function() {
+if($scope.showHistory) { $scope.getHistory(); }
+}
 
 $scope.getHistory = function(){
 $http.get($scope.baseUrl + "/history").then(function(response){
@@ -81,6 +106,8 @@ alert("Process killed");
 },function(response){
 console.log(response);
 alert("Error killing process. see console.");
+}, function (response) {
+$scope.refreshHistoryIfNeeded();
 });
 };
 
@@ -105,6 +132,8 @@ $timeout( function(){ $scope.readLog(); }, 1000);
 }
 }, function (response) {
 console.log(response);
+}, function (response) {
+$scope.refreshHistoryIfNeeded();
 });
 };
 }]);
