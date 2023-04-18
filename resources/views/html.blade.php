@@ -53,7 +53,7 @@
                     <td>@{{log_data.user_identifier}}</td>
                     <td>@{{log_data.command}} @{{log_data.parameters}}</td>
                     <td><span data-ng-click="readLog(log_data.job_uuid)" class="label label-info" style="cursor: pointer;">@{{log_data.job_uuid}}</span></td><!-- use same call as showing log. -->
-                    <td>@{{statusCodeToHumanReadable(log_data.process_status)}}</td>
+                    <td>@{{statusCodeToHumanReadable(log_data.process_status)}} @{{showKilledByIfStatusKilled(log_data)}}</td>
                     <td>@{{log_data.executed_at*1000 | date: 'yyyy-MM-dd HH:mm:ss'}}</td>
                     <td>@{{log_data.finished_at*1000 | date: 'yyyy-MM-dd HH:mm:ss'}}</td>
                     <td>

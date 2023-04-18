@@ -41,6 +41,13 @@ $scope.statusCodeToHumanReadable = function (status_code) {
 return $scope.proc_statuses[status_code];
 }
 
+$scope.showKilledByIfStatusKilled = function(recordData) {
+if(recordData.process_status === 4) { // proc_statuses 4 = killed.
+return "(" + recordData.killed_by + ")";
+}
+return "";
+}
+
 $scope.locationPath = function (newPath)
 {
 return $location.path(newPath);
