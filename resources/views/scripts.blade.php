@@ -56,16 +56,11 @@ $scope.params = parameters;
 $scope.execute();
 }
 
-$scope.switchLoader = function() {
-
-}
-
 $scope.switchSubmitButton = function() {
-    $scope.showExecButton = !$scope.showExecButton;
+$scope.showExecButton = !$scope.showExecButton;
 }
 
 $scope.execute = function () {
-$scope.switchLoader();
 $scope.switchSubmitButton();
 // show loader
 $http.post($scope.baseUrl + "/execute", {
@@ -78,10 +73,9 @@ $scope.readLog();
 },
 5000
 );
+$scope.switchSubmitButton();
+$scope.refreshHistoryIfNeeded();
 }, function (response) {
-console.log(response);
-}, function (response) {
-$scope.switchLoader();
 $scope.switchSubmitButton();
 $scope.refreshHistoryIfNeeded();
 });
@@ -103,12 +97,11 @@ $scope.killProcess = function(uuid){
 $http.post($scope.baseUrl + "/kill/" + uuid)
 .then(function(response){
 console.log("Response success", response.data);
+$scope.refreshHistoryIfNeeded();
 alert("Process killed");
 },function(response){
 console.log(response);
 alert("Error killing process. see console.");
-}, function (response) {
-$scope.refreshHistoryIfNeeded();
 });
 };
 
@@ -131,9 +124,9 @@ $scope.log.content = response.data.content.join("\n");
 if (!response.data.isEnded) {
 $timeout( function(){ $scope.readLog(); }, 1000);
 }
+$scope.refreshHistoryIfNeeded();
 }, function (response) {
 console.log(response);
-}, function (response) {
 $scope.refreshHistoryIfNeeded();
 });
 };

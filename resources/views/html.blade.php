@@ -10,7 +10,7 @@
 
         <textarea placeholder="input options & arguments (if required)..." name="params" data-ng-model="params" style="width:70%"></textarea>
 
-        <input type="button" class="btn btn-primary" data-ng-click="execute()" value="Execute" />
+        <input type="button" data-ng-disabled="!showExecButton" class="btn btn-primary" data-ng-click="execute()" value="Execute" /><span data-ng-show="!showExecButton" class="fa fa-spinner fa-spin" style="margin-left: 15px"></span>
 
         <hr style="opacity:0; display:block; width:100%;"/>
 
@@ -32,7 +32,7 @@
     </form>
 
     <div class="history-wrapper"> <!-- show when history button clicked! -->
-        <button title="show-hide history" data-ng-disabled="!showExecButton" data-ng-click="showHistory = !showHistory;"><span data-ng-hide="!showHistory">Hide</span><span data-ng-hide="showHistory">Show</span> History</button>
+        <button title="show-hide history" data-ng-click="showHistory = !showHistory;"><span data-ng-hide="!showHistory">Hide</span><span data-ng-hide="showHistory">Show</span> History</button>
         <div data-ng-show="showHistory">
             <table class="table table-bordered">
                 <thead class="thead-dark">
