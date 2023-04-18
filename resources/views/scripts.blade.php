@@ -10,6 +10,7 @@ $scope.command = null;
 $scope.params = '';
 $scope.$location = {};
 $scope.showHistory = false;
+$scope.showExecButton = true;
 $scope.log = {
 uuid: null,
 content: "",
@@ -60,7 +61,7 @@ $scope.switchLoader = function() {
 }
 
 $scope.switchSubmitButton = function() {
-
+    $scope.showExecButton = !$scope.showExecButton;
 }
 
 $scope.execute = function () {

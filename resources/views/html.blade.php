@@ -32,7 +32,7 @@
     </form>
 
     <div class="history-wrapper"> <!-- show when history button clicked! -->
-        <button title="show-hide history"  data-ng-click="showHistory = !showHistory;"><span data-ng-hide="!showHistory">Hide</span><span data-ng-hide="showHistory">Show</span> History</button>
+        <button title="show-hide history" data-ng-disabled="!showExecButton" data-ng-click="showHistory = !showHistory;"><span data-ng-hide="!showHistory">Hide</span><span data-ng-hide="showHistory">Show</span> History</button>
         <div data-ng-show="showHistory">
             <table class="table table-bordered">
                 <thead class="thead-dark">
