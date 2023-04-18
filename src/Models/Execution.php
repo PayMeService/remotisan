@@ -16,6 +16,7 @@ use PayMe\Remotisan\ProcessStatuses;
  * @property string     $parameters
  * @property integer    $process_status
  * @property string     $killed_by
+ * @property string     $intended_to_kill_by
  * @property integer    $executed_at
  * @property integer    $finished_at
  */
@@ -49,6 +50,7 @@ class Execution extends Model
      */
     public function markKilled(bool $save = true): void
     {
+        $this->killed_by = $this->intended_to_kill_by;
         $this->updateProcessStatus(ProcessStatuses::KILLED, $save);
     }
 

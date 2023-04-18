@@ -86,7 +86,7 @@ class Remotisan
             throw new UnauthenticatedException("Action Not Allowed.", 422);
         }
 
-        $executionRecord->killed_by = $this->getUserIdentifier();
+        $executionRecord->intended_to_kill_by = $this->getUserIdentifier();
         $executionRecord->save();
 
         CacheManager::addKillInstruction($uuid);
