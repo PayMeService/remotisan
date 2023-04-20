@@ -75,13 +75,15 @@ class RemotisanController extends Controller {
      */
     public function sendKillSignal(Request $request, string $uuid)
     {
+        $code = null;
         try {
             $this->rt->sendKillSignal($uuid);
         } catch (ProcessFailedException $e) {
             $uuid = null;
+            $code = $e->getCode();
         }
 
-        return response()->json(["uuid" => $uuid], ($uuid ? 200 : 500));
+        return response()->json(["uuid" => $uuid], ($uuid ? 200 : ($code ?? 500)));
     }
 
     /**
