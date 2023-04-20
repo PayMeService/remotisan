@@ -114,7 +114,15 @@ $scope.refreshHistoryIfNeeded();
 alert("Process killed");
 },function(response){
 console.log(response);
-alert(response.statusText);
+var alertInfo = "";
+if(response.status == 409) {
+alertInfo = "Kill already in progress";
+}elseif(response.status == 422) {
+alertInfo = "Process already killed";
+}elseif(response.status == 422) {
+alertInfo = "Process already killed";
+}else{ alertInfo = "Server Error"; }
+alert(alertInfo);
 });
 };
 
