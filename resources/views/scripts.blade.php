@@ -11,6 +11,7 @@ $scope.params = '';
 $scope.$location = {};
 $scope.showHistory = false;
 $scope.showExecButton = true;
+$scope.showHelp = false;
 $scope.log = {
 uuid: null,
 content: "",
@@ -58,17 +59,22 @@ $scope.params = '';
 };
 
 $scope.reRun = function(command, parameters) {
+if (!confirm("Are you sure to re-run \"" + command + " " + parameters + "\" command ?")) { return; }
 $scope.command = command;
 $scope.params = parameters;
 $scope.execute();
 }
 
-$scope.switchSubmitButton = function() {
-$scope.showExecButton = !$scope.showExecButton;
+$scope.lockExecButton = function() {
+$scope.showExecButton = false;
+}
+
+$scope.unlockExecButton = function() {
+$scope.showExecButton = true;
 }
 
 $scope.execute = function () {
-$scope.switchSubmitButton();
+$scope.lockExecButton();
 // show loader
 $http.post($scope.baseUrl + "/execute", {
 command: $scope.command,
@@ -80,10 +86,9 @@ $scope.readLog();
 },
 5000
 );
-$scope.switchSubmitButton();
 $scope.refreshHistoryIfNeeded();
 }, function (response) {
-$scope.switchSubmitButton();
+$scope.unlockExecButton();
 $scope.refreshHistoryIfNeeded();
 });
 };
@@ -101,6 +106,7 @@ console.log(response);
 };
 
 $scope.killProcess = function(uuid){
+if (!confirm("Do you really want to kill the job " + uuid + " ?")) { return; }
 $http.post($scope.baseUrl + "/kill/" + uuid)
 .then(function(response){
 console.log("Response success", response.data);
@@ -131,9 +137,11 @@ $scope.log.content = response.data.content.join("\n");
 if (!response.data.isEnded) {
 $timeout( function(){ $scope.readLog(); }, 1000);
 }
+$scope.unlockExecButton();
 $scope.refreshHistoryIfNeeded();
 }, function (response) {
 console.log(response);
+$scope.unlockExecButton();
 $scope.refreshHistoryIfNeeded();
 });
 };

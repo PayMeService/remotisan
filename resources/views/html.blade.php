@@ -10,11 +10,14 @@
 
         <textarea placeholder="input options & arguments (if required)..." name="params" data-ng-model="params" style="width:70%"></textarea>
 
-        <input type="button" data-ng-disabled="!showExecButton" class="btn btn-primary" data-ng-click="execute()" value="Execute" /><span data-ng-show="!showExecButton" class="fa fa-spinner fa-spin" style="margin-left: 15px"></span>
+        <input type="button" data-ng-disabled="!showExecButton" class="btn btn-primary" data-ng-click="execute()" value="Execute" />
+        <input type="button" class="btn btn-primary" data-ng-show="!showHelp" data-ng-click="showHelp = !showHelp" value="Show commands help" />
+        <input type="button" class="btn btn-primary" data-ng-show="showHelp" data-ng-click="showHelp = !showHelp" value="Hide commands help" />
+        <span data-ng-show="!showExecButton" class="fa fa-spinner fa-spin" style="margin-left: 15px"></span>
 
         <hr style="opacity:0; display:block; width:100%;"/>
 
-        <div data-ng-show="command">
+        <div data-ng-show="command && showHelp">
             <div class="abc" style="background-color: #f9fdf0">
                 <div><strong>Command name:</strong> @{{commands[command].name}}</div>
                 <div><strong>Description:</strong> @{{commands[command].description}}</div>
