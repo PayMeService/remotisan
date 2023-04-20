@@ -5,6 +5,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Str;
 use PayMe\Remotisan\Exceptions\RecordNotFoundException;
+use PayMe\Remotisan\Exceptions\RemotisanException;
 use PayMe\Remotisan\Exceptions\UnauthenticatedException;
 use PayMe\Remotisan\Models\Execution;
 
@@ -75,15 +76,19 @@ class Remotisan
         }
 
         if (!$executionRecord) {
-            throw new RecordNotFoundException("Action Not Allowed.", 404);
+            throw new RecordNotFoundException("Action Not Allowed", 404);
         }
 
         if ($executionRecord->user_identifier != $this->getUserIdentifier() && !$this->isSuperUser()) {
-            throw new UnauthenticatedException("Action Not Allowed.", 401);
+            throw new UnauthenticatedException("Action Not Allowed", 401);
         }
 
         if ($executionRecord->process_status !== ProcessStatuses::RUNNING) {
-            throw new UnauthenticatedException("Action Not Allowed.", 422);
+            throw new UnauthenticatedException("Already killed", 422);
+        }
+
+        if ($executionRecord->intended_to_kill_by !== null) { // already received signal.
+            throw new RemotisanException("Kill already in process", 409);
         }
 
         $executionRecord->intended_to_kill_by = $this->getUserIdentifier();

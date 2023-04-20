@@ -114,7 +114,7 @@ $scope.refreshHistoryIfNeeded();
 alert("Process killed");
 },function(response){
 console.log(response);
-alert("Error killing process. see console.");
+alert(response.statusText);
 });
 };
 
