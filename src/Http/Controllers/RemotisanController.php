@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use PayMe\Remotisan\CommandsRepository;
 use PayMe\Remotisan\Exceptions\ProcessFailedException;
+use PayMe\Remotisan\Exceptions\RemotisanException;
 use PayMe\Remotisan\FileManager;
 use PayMe\Remotisan\Models\Execution;
 use PayMe\Remotisan\Remotisan;
@@ -78,7 +79,7 @@ class RemotisanController extends Controller {
         $code = null;
         try {
             $this->rt->sendKillSignal($uuid);
-        } catch (ProcessFailedException $e) {
+        } catch (RemotisanException $e) {
             $uuid = null;
             $code = $e->getCode();
         }
