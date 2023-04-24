@@ -39,7 +39,7 @@ php artisan vendor:publish --tag="remotisan-views"
 
 Note: UserRoles class is NOT provided, for demonstration purpose only!
 
-Use your own model for Access control layer.
+Use your own model for Access control layer (ACL).
 ```php
 [
     "commands" =>   [
@@ -109,14 +109,19 @@ In a multi-instance environment you MUST implement Audit, User Identifier sectio
 As well, you would like to use Redis (memcached, or other shared) cache for proper communication between instances and process killer task.
 
 ### Technical details
-The package sends kill signals into redis with its server identifier and the job's guid, later on, the remotisan:broker accesses redis to check for kills, and in case it spots the job uuid within the killing list, it would send SIG_KILL to the process.
+The package sends kill signals into redis (using cache() facade, in multi-server env have to use shared caching) with its server identifier and the job's guid, later on, the remotisan:broker accesses redis to check for kills, and in case it spots the job uuid within the killing list, it would send SIG_* to the process.
 
-Before killing, the job will wring to job's log "PROCESS KILLED BY {USER_IDENTIFIER} AT {DATETIME}".
+SIGNAL's send in well defined order, first trying to gracefully end the run, then sending more and more aggressive, up to SIG_KILL if the job is not managed to quit.
+
+Before killing, the job will write to job's log "PROCESS KILLED BY {USER_IDENTIFIER} AT {DATETIME}".
 
 ## Super User
 To allow super user or a supervisor to kill ANY running job, you would like to state user_identifiers you use within remotisan config's section `super_users` which is array/list of super users.
 Any super user stated in the list would be able to kill ANY running job.
 ONLY Running jobs are killable.
+
+### TODO
+1. Cover api's request-response to simplify life for developers wanting to implement their own view and frontend logics.
 
 ## Happy jobbing, happy killing! :)
 
