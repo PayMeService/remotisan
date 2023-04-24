@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [ubuntu-latest, centos-latest, redhat-latest]
+        os: [ubuntu-latest, redhat-latest]
         php: [7.4, 8.1]
         stability: [prefer-lowest, prefer-stable]
         include:
