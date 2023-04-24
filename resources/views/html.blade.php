@@ -3,18 +3,23 @@
 <div class="container" id="container" data-ng-app="RemotisanApp" data-ng-controller="RemotisanController">
     <h2>Commands</h2>
     <form class="form-inline" data-ng-submit="execute()" data-ng-init='init("{{ config('remotisan.url') }}")'>
-        <label class="my-1 mr-2" for="inlineFormCustomSelectPref">Preference</label>
-        <select required class="custom-select my-1 mr-sm-2" data-ng-model="command" name="command"
-                data-ng-options='c.name as (c.name + " - " + c.description) for c in commands' data-ng-change="onChangeDropdownValue()">
-        </select>
+        <div>
+            <label class="my-1 mr-2" for="inlineFormCustomSelectPref">Preference</label>
+            <select required class="custom-select my-1 mr-sm-2" data-ng-model="command" name="command"
+                    data-ng-options='c.name as (c.name + " - " + c.description) for c in commands' data-ng-change="onChangeDropdownValue()">
+            </select>
+            <input type="checkbox" id="show_help_checkbox" name="show_help_checkbox" data-ng-model="showHelp">
+            <label for="show_help_checkbox">
+                <span data-ng-show="!showHelp">Show commands help</span>
+                <span data-ng-show="showHelp">Hide commands help</span>
+            </label>
+        </div>
+        <div>
+            <textarea placeholder="input options & arguments (if required)..." name="params" data-ng-model="params" style="width:70%"></textarea>
 
-        <textarea placeholder="input options & arguments (if required)..." name="params" data-ng-model="params" style="width:70%"></textarea>
-
-        <input type="button" data-ng-disabled="!showExecButton" class="btn btn-primary" data-ng-click="execute()" value="Execute" />
-        <input type="button" class="btn btn-primary" data-ng-show="!showHelp" data-ng-click="showHelp = !showHelp" value="Show commands help" />
-        <input type="button" class="btn btn-primary" data-ng-show="showHelp" data-ng-click="showHelp = !showHelp" value="Hide commands help" />
-        <span data-ng-show="!showExecButton" class="fa fa-spinner fa-spin" style="margin-left: 15px"></span>
-
+            <input type="button" data-ng-disabled="!showExecButton" class="btn btn-primary" data-ng-click="execute()" value="Execute" />
+            <span data-ng-show="!showExecButton" class="fa fa-spinner fa-spin" style="margin-left: 15px"></span>
+        </div>
         <hr style="opacity:0; display:block; width:100%;"/>
 
         <div data-ng-show="command && showHelp">

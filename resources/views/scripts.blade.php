@@ -52,11 +52,11 @@ return "";
 $scope.locationPath = function (newPath)
 {
 return $location.path(newPath);
-};
+}
 
 $scope.onChangeDropdownValue = function () {
 $scope.params = '';
-};
+}
 
 $scope.reRun = function(command, parameters) {
 if (!confirm("Are you sure to re-run \"" + command + " " + parameters + "\" command ?")) { return; }
@@ -74,6 +74,7 @@ $scope.showExecButton = true;
 }
 
 $scope.execute = function () {
+$scope.resetLog();
 $scope.lockExecButton();
 // show loader
 $http.post($scope.baseUrl + "/execute", {
@@ -117,9 +118,9 @@ console.log(response);
 var alertInfo = "";
 if(response.status == 409) {
 alertInfo = "Kill already in progress";
-}elseif(response.status == 422) {
+}else if(response.status == 422) {
 alertInfo = "Process already killed";
-}elseif(response.status == 401) {
+}else if(response.status == 401) {
 alertInfo = "Not allowed!";
 }else{
 alertInfo = "Server Error";
@@ -136,6 +137,13 @@ $scope.commands = response.data.commands;
 console.log(response);
 });
 };
+
+$scope.resetLog = function() {
+$scope.log = {
+uuid: null,
+content: "",
+};
+}
 
 $scope.readLog = function (log_uuid = null) {
 $scope.log.uuid = log_uuid || $scope.log.uuid;
