@@ -11,8 +11,6 @@ namespace PayMe\Remotisan;
 use Illuminate\Console\Application;
 use Illuminate\Support\ProcessUtils;
 use Illuminate\Support\Str;
-use PayMe\Remotisan\Exceptions\ProcessFailedException;
-use PayMe\Remotisan\Models\Execution;
 use Symfony\Component\Process\Process;
 
 class ProcessExecutor
@@ -37,88 +35,26 @@ class ProcessExecutor
         return $pid;
     }
 
-    /**
-     * Simple command executor. Handles the execution and return the process for future work with it.
-     * Be it checks, or getOutput() or any other further manipulation on process object.
-     *
-     * @param string $cmd
-     * @return Process
-     */
-    public function executeCommand(string $cmd): Process
-    {
-        $process = Process::fromShellCommandline($cmd, base_path());
-        $process->enableOutput();
-        $process->run();
-
-        if (!$process->isSuccessful()) {
-            throw new ProcessFailedException($process->getErrorOutput());
-        }
-
-        return $process;
-    }
-
-    /**
-     * Check process existence and belongs to artisan before killing.
-     * @param Execution $executionRecord
-     * @return int[]
-     */
-    public function getSubProcessIds(Execution $executionRecord): array
-    {
-        $process = $this->executeCommand("ps aux | grep '{$executionRecord->job_uuid}'");
-        $output = collect(explode("\n", $process->getOutput()))
-            ->filter()
-            ->map(fn($psLine) => array_filter(explode(" ", $psLine))[1]);
-
-        return $output->values()->all();
-    }
-
-    /**
-     * Process killer
-     * @param Execution $executionRecord
-     * @return void
-     */
-    public function killProcess(Execution $executionRecord): bool
-    {
-        if (!$pids = $this->getSubProcessIds($executionRecord)) {
-            return false;
-        }
-
-        $process = $this->executeCommand("kill -9 " . join(" ", $pids));
-
-        return (bool)$process->getPid();
-    }
-
-    /**
-     * Append input to file.
-     * @param $filePath
-     * @param $input
-     * @return int
-     */
-    public function appendInputToFile($filePath, $input): int
-    {
-        $process = $this->executeCommand("echo \"{$input}\" >> {$filePath}");
-
-        return (bool)$process->getPid();
-    }
-
     public function compileShell(
         string $output,
         string $uuid
     ): string {
         $output  = ProcessUtils::escapeArgument($output);
-
-        $command = Application::formatCommandString("remotisan:execute {$uuid}") . " > {$output}; " .
-            Application::formatCommandString("remotisan:complete {$uuid}");
+        $command = Application::formatCommandString("remotisan:broker {$uuid}") . " > {$output};";
 
         // As background
         return '(' . $command . ') 2>&1 &';
     }
 
-    public function escapeParamsString(string $params): string
+    /**
+     * Splits parameters string into parameters array with escaping and return the array.
+     *
+     * @param string $params
+     * @return array
+     */
+    public function compileCmdAsEscapedArray(string $params): array
     {
-        return $this->compileParamsArray(
-            $this->parseParamsString($params)
-        );
+        return $this->compileParamsArray($this->parseParamsString($params));
     }
 
     /**
@@ -127,10 +63,10 @@ class ProcessExecutor
      * Copied from \Illuminate\Console\Scheduling\Schedule::compileParameters
      * Thanks to Laravel Team
      *
-     * @param  array  $params
-     * @return string
+     * @param   array   $params
+     * @return  array
      */
-    protected function compileParamsArray(array $params): string
+    protected function compileParamsArray(array $params): array
     {
         return collect($params)->map(function ($value, $key) {
             if (is_array($value)) {
@@ -138,11 +74,69 @@ class ProcessExecutor
             }
 
             if (! is_numeric($value) && ! preg_match('/^(-.$|--.*)/i', $value)) {
-                $value = ProcessUtils::escapeArgument($value);
+                $value = static::escapeArgument($value);
             }
 
             return is_numeric($key) ? $value : "{$key}={$value}";
-        })->implode(' ');
+        })->values()->all();
+    }
+
+    /**
+     * Is the given string surrounded by the given character?
+     *
+     * @param  string  $arg
+     * @param  string  $char
+     * @return bool
+     */
+    protected static function isSurroundedBy($arg, $char)
+    {
+        return 2 < strlen($arg) && $char === $arg[0] && $char === $arg[strlen($arg) - 1];
+    }
+
+    /**
+     * Escapes a string to be used as a shell argument.
+     *
+     * @param  string  $argument
+     * @return string
+     */
+    public static function escapeArgument($argument)
+    {
+        // Fix for PHP bug #43784 escapeshellarg removes % from given string
+        // Fix for PHP bug #49446 escapeshellarg doesn't work on Windows
+        // @see https://bugs.php.net/bug.php?id=43784
+        // @see https://bugs.php.net/bug.php?id=49446
+        if ('\\' === DIRECTORY_SEPARATOR) {
+            if ('' === $argument) {
+                return '""';
+            }
+
+            $escapedArgument = '';
+            $quote = false;
+
+            foreach (preg_split('/(")/', $argument, -1, PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE) as $part) {
+                if ('"' === $part) {
+                    $escapedArgument .= '\\"';
+                } elseif (self::isSurroundedBy($part, '%')) {
+                    // Avoid environment variable expansion
+                    $escapedArgument .= '^%"'.substr($part, 1, -1).'"^%';
+                } else {
+                    // escape trailing backslash
+                    if ('\\' === substr($part, -1)) {
+                        $part .= '\\';
+                    }
+                    $quote = true;
+                    $escapedArgument .= $part;
+                }
+            }
+
+            if ($quote) {
+                $escapedArgument = '"'.$escapedArgument.'"';
+            }
+
+            return $escapedArgument;
+        }
+
+        return str_replace("'", "'\\''", $argument);
     }
 
     /**
@@ -151,11 +145,11 @@ class ProcessExecutor
      * Copied from \Illuminate\Console\Scheduling\Schedule::compileArrayInput
      * Thanks to Laravel Team
      *
-     * @param  string|int  $key
-     * @param  array  $value
-     * @return string
+     * @param   string|int  $key
+     * @param   array       $value
+     * @return  array
      */
-    protected function compileArrayInput($key, $value)
+    public function compileArrayInput($key, $value): array
     {
         $value = collect($value)->map(function ($value) {
             return ProcessUtils::escapeArgument($value);
@@ -171,12 +165,11 @@ class ProcessExecutor
             });
         }
 
-        return $value->implode(' ');
+        return $value->values()->all();
     }
 
     /**
      * Convert a string of command arguments and options to an array.
-     *
      *
      * Copied from \Studio\Totem\Task::compileParameters
      * Thanks to Totem Team (codestudiohq)
@@ -185,7 +178,7 @@ class ProcessExecutor
      *
      * @return array
      */
-    protected function parseParamsString($parameters, $console = false)
+    public function parseParamsString($parameters, $console = false)
     {
         if ($parameters) {
             $regex = '/(?=\S)[^\'"\s]*(?:\'[^\']*\'[^\'"\s]*|"[^"]*"[^\'"\s]*)*/';

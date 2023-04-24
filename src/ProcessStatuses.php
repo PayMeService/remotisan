@@ -15,6 +15,11 @@ class ProcessStatuses
     const FAILED = 3;
     const KILLED = 4;
 
+    /**
+     * Get final statuses (all that indicates INACTIVE job).
+     *
+     * @return int[]
+     */
     public static function getNotRunningStatusesArray(): array
     {
         return [
