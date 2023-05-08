@@ -54,7 +54,7 @@ class ProcessExecutor
      */
     public function compileCmdAsEscapedArray(string $params): array
     {
-        return $this->compileParamsArray($this->parseParamsString($params));
+        return $this->compileParamsArray($this->parseParamsString($params, true));
     }
 
     /**
