@@ -205,13 +205,13 @@ class ProcessExecutor
                 if (count($param) > 1) {
                     $trimmed_param = trim(trim($param[1], '"'), "'");
                     if ($console) {
-                        if (Str::startsWith($param[0], ['--', '-'])) {
-                            $carry = $duplicate_parameter_index($carry, $param, $trimmed_param);
-                        } else {
-                            $carry[$argument_index++] = $trimmed_param;
-                        }
+                        //if (Str::startsWith($param[0], ['--', '-'])) {
+                        return $duplicate_parameter_index($carry, $param, $trimmed_param);
+                        //} else {
+                            //$carry[$argument_index++] = $trimmed_param;
+                        //}
 
-                        return $carry;
+                        //return $carry;
                     }
 
                     return $duplicate_parameter_index($carry, $param, $trimmed_param);
