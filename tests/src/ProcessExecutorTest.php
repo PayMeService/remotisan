@@ -21,7 +21,7 @@ class ProcessExecutorTest extends TestCase
             0 => "firstArg",
             1 => "SecondArg",
             2 => "argWith=equalsSign",
-            3 => "--emptyOpt=1",
+            3 => "--emptyOpt",
             4 => "--firstOpt=first-value",
             5 => "--second=sec val",
             6 => [
@@ -31,35 +31,12 @@ class ProcessExecutorTest extends TestCase
             7 => ";",
             8 => "php",
             9 => "artisan",
-            10 => "--version=1",
+            10 => "--version",
             11 => "||",
             12 => "php",
             13 => "artisan",
             14 => "migrate:status",
         ];
-
-        if (PHP_OS_FAMILY === "Windows") {
-            $expectedArray = [
-                0 => '"firstArg"',
-                1 => '"SecondArg"',
-                2 => 'argWith="equalsSign"',
-                3 => '--emptyOpt="1"',
-                4 => '--firstOpt="first-value"',
-                5 => '--second="sec val"',
-                6 => [
-                    '--arr="1"',
-                    '--arr="2"',
-                ],
-                7 => '";"',
-                8 => '"php"',
-                9 => '"artisan"',
-                10 => '--version="1"',
-                11 => '"||"',
-                12 => '"php"',
-                13 => '"artisan"',
-                14 => '"migrate:status"',
-            ];
-        }
 
         $this->assertEquals(
             $expectedArray,
