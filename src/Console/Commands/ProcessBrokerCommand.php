@@ -45,7 +45,7 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
 
     protected Execution $executionRecord;
 
-    protected array $killSignalsList = [3, 2, 15, 1]; //SIGQUIT, SIGINT, SIGTERM, SIGHUP
+    protected array $killSignalsList = [SIGQUIT, SIGINT, SIGTERM, SIGHUP];
 
     protected int $recentSignalTime = 0;
 
@@ -69,23 +69,26 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
     protected function executeProcess(Execution $executionRecord): void
     {
         $this->initializeProcess($executionRecord);
-        $this->process->start();
 
         try {
-            $this->process->wait(function ($type, $buffer) use ($executionRecord) {
-                file_put_contents($this->pathToLog, $buffer, FILE_APPEND);
-                if ($this->process->isRunning() && CacheManager::hasKillInstruction($executionRecord->job_uuid) && $this->recentSignalTime + 5 < time()) {
-                    $this->isKilled = true;
-                    $this->recentSignalTime = time();
-                    $this->process->signal((!empty($this->killSignalsList) ? array_shift($this->killSignalsList) : 9));
-                }
-
+            $this->process->start(function ($type) use ($executionRecord) {
                 if (Process::ERR === $type) {
                     $this->isErroneous = true;
                 }
             });
-        } catch (\Throwable $e)
-        {
+
+            while ($this->process->isRunning()) {
+                file_put_contents($this->pathToLog, $this->process->getIncrementalOutput(), FILE_APPEND);
+
+                if ($this->process->isRunning() && CacheManager::hasKillInstruction($executionRecord->job_uuid) && $this->recentSignalTime + 5 < time()) {
+                    $this->isKilled = true;
+                    $this->recentSignalTime = time();
+                    $this->process->signal((!empty($this->killSignalsList) ? array_shift($this->killSignalsList) : SIGKILL));
+                }
+                usleep(100000); // Sleep for 100 milliseconds
+            }
+
+        } catch (\Throwable $e) {
             $this->isErroneous = true;
         }
     }
