@@ -2,11 +2,11 @@
 
 namespace PayMe\Remotisan\Http\Controllers;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use PayMe\Remotisan\CommandsRepository;
-use PayMe\Remotisan\Exceptions\ProcessFailedException;
 use PayMe\Remotisan\Exceptions\RemotisanException;
 use PayMe\Remotisan\FileManager;
 use PayMe\Remotisan\Models\Execution;
@@ -70,21 +70,23 @@ class RemotisanController extends Controller {
 
     /**
      * Kill process endpoint. If PID returned, then process killed.
+     *
      * @param Request   $request
      * @param string    $uuid
-     * @return array
+     *
+     * @return \Illuminate\Http\JsonResponse
      */
     public function sendKillSignal(Request $request, string $uuid)
     {
-        $code = null;
+        $code = 200;
         try {
             $this->rt->sendKillSignal($uuid);
         } catch (RemotisanException $e) {
             $uuid = null;
-            $code = $e->getCode();
+            $code = $e->getCode() ?: 500;
         }
 
-        return response()->json(["uuid" => $uuid], ($uuid ? 200 : ($code ?? 500)));
+        return response()->json(["uuid" => $uuid], $code);
     }
 
     /**
@@ -94,9 +96,11 @@ class RemotisanController extends Controller {
     public function history(Request $request): Collection
     {
         return Execution::query()
-            //->where("user_identifier", $this->rt->getUserIdentifier()) // commented out by request to unscope history
+            ->when(config("remotisan.history.should-scope", false), function (Builder $q) {
+                $q->where("user_identifier", $this->rt->getUserIdentifier());
+            })
             ->orderByDesc("executed_at")
-            ->limit(config("remotisan.show_history_records_num"))
+            ->limit(config("remotisan.history.max_records"))
             ->get();
     }
 

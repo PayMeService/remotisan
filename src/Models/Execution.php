@@ -63,6 +63,11 @@ class Execution extends Model
         $this->updateProcessStatus(ProcessStatuses::FAILED, $save);
     }
 
+    public function isRunning(): bool
+    {
+        return $this->process_status == ProcessStatuses::RUNNING;
+    }
+
     /**
      * Facade to set status killed transparently to developers.
      * @return void
