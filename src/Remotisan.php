@@ -46,13 +46,13 @@ class Remotisan
         $commandData->checkExecute($this->getUserGroup());
         $uuid = Str::uuid()->toString();
         Execution::create([
-            "job_uuid"      => $uuid,
-            "server_uuid"   => FileManager::getServerUuid(),
-            "executed_at"   => time(),
-            "command"       => $command,
-            "parameters"    => $params,
-            "user_identifier"=> $this->getUserIdentifier(),
-            "process_status"=> ProcessStatuses::RUNNING,
+            "job_uuid"        => $uuid,
+            "server_uuid"     => FileManager::getServerUuid(),
+            "executed_at"     => time(),
+            "command"         => $command,
+            "parameters"      => $params,
+            "user_identifier" => $this->getUserIdentifier(),
+            "process_status"  => ProcessStatuses::RUNNING,
         ]);
 
         $this->processExecutor->execute($uuid, FileManager::getLogFilePath($uuid));
@@ -65,7 +65,6 @@ class Remotisan
      *
      * @param   string  $uuid
      * @return  string
-     * @throws  \Illuminate\Contracts\Filesystem\FileNotFoundException
      */
     public function sendKillSignal(string $uuid): string
     {
@@ -76,15 +75,15 @@ class Remotisan
         }
 
         if (!$executionRecord) {
-            throw new RecordNotFoundException("Action Not Allowed", 404);
+            throw new RecordNotFoundException();
         }
 
         if ($executionRecord->user_identifier != $this->getUserIdentifier() && !$this->isSuperUser()) {
             throw new UnauthenticatedException("Action Not Allowed", 401);
         }
 
-        if ($executionRecord->process_status !== ProcessStatuses::RUNNING) {
-            throw new UnauthenticatedException("Already killed", 422);
+        if (!$executionRecord->isRunning()) {
+            throw new RemotisanException("Already killed", 422);
         }
 
         if ($executionRecord->intended_to_kill_by !== null) { // already received signal.

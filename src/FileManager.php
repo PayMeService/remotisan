@@ -3,6 +3,7 @@ namespace PayMe\Remotisan;
 
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
+use PayMe\Remotisan\Exceptions\RecordNotFoundException;
 use PayMe\Remotisan\Models\Execution;
 
 class FileManager
@@ -37,10 +38,13 @@ class FileManager
     public static function read($executionUuid): array
     {
         $executionRecord = Execution::getByJobUuid($executionUuid);
+        if (!$executionRecord) {
+            throw new RecordNotFoundException();
+        }
 
         return [
             "content" => explode(PHP_EOL, rtrim(File::get(static::getLogFilePath($executionUuid)))),
-            "isEnded" => ($executionRecord ? $executionRecord->process_status : ProcessStatuses::COMPLETED) !== ProcessStatuses::RUNNING
+            "isEnded" => !$executionRecord->isRunning()
         ];
     }
 
@@ -55,6 +59,10 @@ class FileManager
     {
         $path = config("remotisan.logger.path");
         File::ensureDirectoryExists($path);
+
+        if (!Str::endsWith("/", $path)) {
+            $path .= "/";
+        }
 
         return $path.$executionUuid.'.log';
     }

@@ -63,7 +63,7 @@
                     <td><span data-ng-click="readLog(log_data.job_uuid)" class="label label-info" style="cursor: pointer;">@{{log_data.job_uuid}}</span></td><!-- use same call as showing log. -->
                     <td>@{{statusCodeToHumanReadable(log_data.process_status)}} @{{showKilledByIfStatusKilled(log_data)}}</td>
                     <td>@{{log_data.executed_at*1000 | date: 'yyyy-MM-dd HH:mm:ss'}}</td>
-                    <td>@{{log_data.finished_at*1000 | date: 'yyyy-MM-dd HH:mm:ss'}}</td>
+                    <td>@{{ log_data.finished_at ? (log_data.finished_at*1000 | date: 'yyyy-MM-dd HH:mm:ss') : '' }}</td>
                     <td>
                         <span data-ng-if="log_data.process_status == 1" data-ng-click="killProcess(log_data.job_uuid)" class="label label-danger" style="cursor: pointer;">Kill Process</span><!-- set history data (the pid) -->
                         <span data-ng-click="reRun(log_data.command, log_data.parameters)" class="label label-info" style="cursor: pointer;">Re-Run</span>
@@ -72,7 +72,7 @@
                 </tbody>
                 <tfoot>
                 <tr>
-                    <td>ID</td>
+                    <td>#</td>
                     <td>User</td>
                     <td>Command</td>
                     <td>UUID</td>
