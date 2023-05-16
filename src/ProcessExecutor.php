@@ -40,10 +40,10 @@ class ProcessExecutor
         string $uuid
     ): string {
         $output  = ProcessUtils::escapeArgument($output);
-        $command = Application::formatCommandString("remotisan:broker {$uuid}") . " > {$output};";
+        $command = Application::formatCommandString("remotisan:broker {$uuid}");
 
         // As background
-        return '(' . $command . ') 2>&1 &';
+        return 'touch ' . $output . '; (' . $command . ') 2>&1 &';
     }
 
     /**
