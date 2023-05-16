@@ -71,13 +71,13 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
         $this->initializeProcess($executionRecord);
 
         try {
-            $this->process->start(function ($type) use ($executionRecord) {
+            $this->process->start(function ($type) {
                 if (Process::ERR === $type) {
                     $this->isErroneous = true;
                 }
             });
 
-            while ($this->process->isRunning()) {
+            while ($this->process->isRunning() && !$this->isErroneous) {
                 file_put_contents($this->pathToLog, $this->process->getIncrementalOutput(), FILE_APPEND);
 
                 if ($this->process->isRunning() && CacheManager::hasKillInstruction($executionRecord->job_uuid) && $this->recentSignalTime + 5 < time()) {
