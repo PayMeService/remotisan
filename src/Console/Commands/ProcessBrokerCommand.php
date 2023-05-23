@@ -45,7 +45,7 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
 
     protected Execution $executionRecord;
 
-    protected array $killSignalsList = [SIGQUIT, SIGINT, SIGTERM, SIGHUP];
+    protected array $killSignalsList = [SIGHUP, SIGINT, SIGABRT,  SIGTERM];
 
     protected int $recentSignalTime = 0;
 
