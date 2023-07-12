@@ -44,7 +44,7 @@ class CacheManager
      */
     public static function hasKillInstruction(string $uuid): bool
     {
-        return false !== static::getKillUuids()->search($uuid, true);
+        return static::getKillUuids()->contains($uuid, true);
     }
 
     /**

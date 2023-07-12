@@ -9,6 +9,7 @@
 namespace PayMe\Remotisan;
 
 use Illuminate\Console\Application;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\ProcessUtils;
 use Illuminate\Support\Str;
 use Symfony\Component\Process\Process;
@@ -24,26 +25,24 @@ class ProcessExecutor
      */
     public function execute(string $uuid, string $output): int
     {
-        $command = $this->compileShell($output, $uuid);
+        $command = $this->compileShell($uuid);
+
+        File::put($output, '');
 
         $this->process = Process::fromShellCommandline($command, base_path(), null, null, null);
         $this->process->start();
         $pid = $this->process->getPid();
+
         usleep(4000);
         $this->process->stop();
 
         return $pid;
     }
 
-    public function compileShell(
-        string $output,
-        string $uuid
-    ): string {
-        $output  = ProcessUtils::escapeArgument($output);
-        $command = Application::formatCommandString("remotisan:broker {$uuid}");
-
+    public function compileShell(string $uuid): string
+    {
         // As background
-        return 'touch ' . $output . '; (' . $command . ') 2>&1 &';
+        return Application::formatCommandString("remotisan:broker {$uuid}") . ' &';
     }
 
     /**
