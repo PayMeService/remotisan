@@ -10,7 +10,10 @@ namespace PayMe\Remotisan\Console\Commands;
 
 use Carbon\Carbon;
 use Illuminate\Console\Command;
+use Illuminate\Support\Str;
 use PayMe\Remotisan\CacheManager;
+use PayMe\Remotisan\Events\ExecutionFailed;
+use PayMe\Remotisan\Events\ExecutionKilled;
 use PayMe\Remotisan\FileManager;
 use PayMe\Remotisan\Models\Execution;
 use PayMe\Remotisan\Remotisan;
@@ -19,6 +22,11 @@ use Symfony\Component\Process\Process;
 
 class ProcessBrokerCommand extends Command implements SignalableCommandInterface
 {
+
+    const SHOULD_NOT_STOP_ERROR_MESSAGES = [
+        "Xdebug:"
+    ];
+
     /**
      * The name and signature of the console command.
      *
@@ -36,6 +44,7 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
     protected bool $isKilled = false;
 
     protected bool $isErroneous = false;
+    protected ?string $errorMessage = null;
 
     protected string $pathToLog;
 
@@ -55,32 +64,31 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
         $this->executionRecord = Execution::getByJobUuid($this->argument("uuid"));
         $this->pathToLog = FileManager::getLogFilePath($this->executionRecord->job_uuid);
 
-        $this->executeProcess($this->executionRecord);
-        $this->postExecutionProcessing($this->executionRecord);
+        $this->executeProcess();
+        $this->postExecutionProcessing();
     }
 
     /**
-     * Executes the command, first building using buildCommandArray. Writes into log and returns exit code
-     *
-     * @param   Execution   $executionRecord
+     * Executes the command. Writes into log and returns exit code
      *
      * @return  void
      */
-    protected function executeProcess(Execution $executionRecord): void
+    protected function executeProcess(): void
     {
-        $this->initializeProcess($executionRecord);
+        $this->initializeProcess();
 
         try {
-            $this->process->start(function ($type) {
-                if (Process::ERR === $type) {
+            $this->process->start(function ($type, $data) {
+                if (Process::ERR === $type && !Str::startsWith($data, self::SHOULD_NOT_STOP_ERROR_MESSAGES)) {
                     $this->isErroneous = true;
+                    $this->errorMessage = $data;
                 }
             });
 
             while ($this->process->isRunning() && !$this->isErroneous) {
                 file_put_contents($this->pathToLog, $this->process->getIncrementalOutput(), FILE_APPEND);
 
-                if ($this->process->isRunning() && CacheManager::hasKillInstruction($executionRecord->job_uuid) && $this->recentSignalTime + 5 < time()) {
+                if ($this->process->isRunning() && CacheManager::hasKillInstruction($this->executionRecord->job_uuid) && $this->recentSignalTime + 5 < time()) {
                     $this->isKilled = true;
                     $this->recentSignalTime = time();
                     $this->process->signal((!empty($this->killSignalsList) ? array_shift($this->killSignalsList) : SIGKILL));
@@ -90,12 +98,13 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
 
         } catch (\Throwable $e) {
             $this->isErroneous = true;
+            $this->errorMessage = $e->getMessage();
         }
     }
 
-    protected function initializeProcess(Execution $executionRecord): Process
+    protected function initializeProcess(): Process
     {
-        $this->process = new Process($this->buildCommandArray($executionRecord), base_path());
+        $this->process = new Process($this->buildCommandArray(), base_path());
         $this->process->setTimeout(null);
         return $this->process;
     }
@@ -103,15 +112,13 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
     /**
      * Building array of command for Process to use.
      *
-     * @param   Execution   $executionRecord
-     *
      * @return  array
      */
-    protected function buildCommandArray(Execution $executionRecord): array
+    protected function buildCommandArray(): array
     {
         return array_merge(
-            explode(' ', "php artisan " . $executionRecord->command),
-            $this->remotisan->getProcessExecutor()->compileCmdAsEscapedArray($executionRecord->parameters)
+            explode(' ', "php artisan " . $this->executionRecord->command),
+            $this->remotisan->getProcessExecutor()->compileCmdAsEscapedArray($this->executionRecord->parameters)
         );
     }
 
@@ -121,40 +128,45 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
      *      (2) remove instruction from cache
      *      (3) mark execution record killed
      *
-     * @param   Execution   $executionRecord
-     *
      * @return  void
      */
-    protected function postKill(Execution $executionRecord): void
+    protected function postKill(): void
     {
+
         $killNote = "\n=============
-            \nPROCESS KILLED BY {$executionRecord->intended_to_kill_by} AT " . ((string)Carbon::parse()) . " \n";
+            \nPROCESS KILLED BY {$this->executionRecord->intended_to_kill_by} AT " . ((string)Carbon::parse()) . " \n";
         file_put_contents($this->pathToLog, $killNote, FILE_APPEND);
-        CacheManager::removeKillInstruction($executionRecord->job_uuid);
-        $executionRecord->markKilled();
+        CacheManager::removeKillInstruction($this->executionRecord->job_uuid);
+        $this->executionRecord->markKilled();
+        event(new ExecutionKilled($this->executionRecord));
+    }
+
+    protected function postFailed(): void
+    {
+        $this->executionRecord->markFailed();
+        event(new ExecutionFailed($this->executionRecord, $this->errorMessage));
+    }
+
+    protected function postCompleted(): void
+    {
+        $this->executionRecord->markCompleted();
+        event(new ExecutionFailed($this->executionRecord, $this->errorMessage));
     }
 
     /**
      * Post execution processing responsible for processing exitCode and process results, then act upon it.
      * Flag record killed, failed and completed.
      *
-     * @param   Execution   $executionRecord
-     *
      * @return void
      */
-    protected function postExecutionProcessing(Execution $executionRecord)
+    protected function postExecutionProcessing(): void
     {
-        $executionRecord->refresh();
-        if ($this->isKilled) {
-            $this->postKill($executionRecord);
-
-            return;
-        }
+        $this->executionRecord->refresh();
 
         if ($this->isErroneous || !$this->process->isSuccessful()) {
-            $executionRecord->markFailed();
+            $this->postFailed();
         } else {
-            $executionRecord->markCompleted();
+            $this->postCompleted();
         }
     }
 
@@ -175,6 +187,6 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
     {
         $this->isKilled = true;
         $this->process->signal($signal);
-        $this->postKill($this->executionRecord);
+        $this->postKill();
     }
 }
