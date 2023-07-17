@@ -12,6 +12,7 @@ use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Str;
 use PayMe\Remotisan\CacheManager;
+use PayMe\Remotisan\Events\ExecutionCompleted;
 use PayMe\Remotisan\Events\ExecutionFailed;
 use PayMe\Remotisan\Events\ExecutionKilled;
 use PayMe\Remotisan\FileManager;
@@ -150,7 +151,7 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
     protected function postCompleted(): void
     {
         $this->executionRecord->markCompleted();
-        event(new ExecutionFailed($this->executionRecord, $this->errorMessage));
+        event(new ExecutionCompleted($this->executionRecord, $this->errorMessage));
     }
 
     /**
