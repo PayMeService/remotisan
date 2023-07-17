@@ -151,7 +151,7 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
     protected function postCompleted(): void
     {
         $this->executionRecord->markCompleted();
-        event(new ExecutionCompleted($this->executionRecord, $this->errorMessage));
+        event(new ExecutionCompleted($this->executionRecord));
     }
 
     /**
