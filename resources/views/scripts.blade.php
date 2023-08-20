@@ -145,6 +145,10 @@ content: "",
 };
 }
 
+$scope.copyToClipboard = function(text) {
+navigator.clipboard.writeText(text);
+}
+
 $scope.readLog = function (log_uuid = null) {
 $scope.log.uuid = log_uuid || $scope.log.uuid;
 $http.get($scope.baseUrl + "/execute/" + $scope.log.uuid)
