@@ -59,9 +59,16 @@
                 <tr data-ng-repeat="(key, log_data) in historyRecords"> <!-- foreach loop -->
                     <td>@{{log_data.id}}</td>
                     <td>@{{log_data.user_identifier}}</td>
-                    <td>@{{log_data.command}} @{{log_data.parameters}}</td>
+                    <td style="max-width:700px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis" title="@{{log_data.command}} @{{log_data.parameters}}">
+                        <button  class="fa fa-clipboard" data-ng-click="copyToClipboard(log_data.parameters)"></button>
+                        @{{log_data.command}} @{{log_data.parameters}}
+                    </td>
                     <td><span data-ng-click="readLog(log_data.job_uuid)" class="label label-info" style="cursor: pointer;">@{{log_data.job_uuid}}</span></td><!-- use same call as showing log. -->
-                    <td>@{{statusCodeToHumanReadable(log_data.process_status)}} @{{showKilledByIfStatusKilled(log_data)}}</td>
+                    <td >
+                        <span data-ng-if="log_data.process_status == 1"  class="label label-primary">@{{statusCodeToHumanReadable(log_data.process_status)}} @{{showKilledByIfStatusKilled(log_data)}}</span>
+                        <span data-ng-if="log_data.process_status == 2"  class="label label-success">@{{statusCodeToHumanReadable(log_data.process_status)}} @{{showKilledByIfStatusKilled(log_data)}}</span>
+                        <span data-ng-if="log_data.process_status != 1 && log_data.process_status != 2"  class="label label-danger">@{{statusCodeToHumanReadable(log_data.process_status)}} @{{showKilledByIfStatusKilled(log_data)}}</span>
+                    </td>
                     <td>@{{log_data.executed_at*1000 | date: 'yyyy-MM-dd HH:mm:ss'}}</td>
                     <td>@{{ log_data.finished_at ? (log_data.finished_at*1000 | date: 'yyyy-MM-dd HH:mm:ss') : '' }}</td>
                     <td>
