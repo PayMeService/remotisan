@@ -98,9 +98,24 @@ $scope.refreshHistoryIfNeeded = function() {
 if($scope.showHistory) { $scope.getHistory(); }
 }
 
-$scope.getHistory = function(){
-$http.get($scope.baseUrl + "/history").then(function(response){
-$scope.historyRecords = response.data;
+$scope.getHistoryFromFullLink = function(fullLink) {
+$scope.getHistory(fullLink.split("?page=")[1]);
+}
+
+$scope.getHistory = function(page) {
+
+page = page || 1;
+
+$http.get($scope.baseUrl + "/history?page=" + page).then(function(response){
+
+$scope.historyRecords = response.data.data;
+
+linksLength = response.data.links.length;
+response.data.links[0].label = "Previous";
+response.data.links[linksLength-1].label = "Next";
+
+$scope.historyPagination = response.data.links;
+
 }, function(response){
 console.log(response);
 });

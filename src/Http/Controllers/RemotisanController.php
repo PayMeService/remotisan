@@ -2,8 +2,8 @@
 
 namespace PayMe\Remotisan\Http\Controllers;
 
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use PayMe\Remotisan\CommandsRepository;
@@ -91,9 +91,9 @@ class RemotisanController extends Controller {
 
     /**
      * @param Request $request
-     * @return Collection
+     * @return LengthAwarePaginator
      */
-    public function history(Request $request): Collection
+    public function history(Request $request)
     {
         return Execution::query()
             ->when(config("remotisan.history.should-scope", false), function (Builder $q) {
@@ -101,7 +101,7 @@ class RemotisanController extends Controller {
             })
             ->orderByDesc("executed_at")
             ->limit(config("remotisan.history.max_records"))
-            ->get();
+            ->paginate(10);
     }
 
     /**
