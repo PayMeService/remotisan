@@ -5,6 +5,7 @@ return [
     "commands" => [
         "allowed" => array_merge([
         ], json_decode(env('REMOTISAN_ALLOWED_COMMANDS', '[]'), true)),
+        "max_params_chars_length" => 1000
     ],
     "logger" => [
         "path" => env('REMOTISAN_LOG_PATH', storage_path('temp')),

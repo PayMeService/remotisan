@@ -60,6 +60,8 @@ class RemotisanController extends Controller {
     {
         $this->rt->requireAuthenticated();
 
+        $this->validateParamsLength($request->json("params"));
+
         $command = $request->json("command");
         $params  = $request->json("params");
 
@@ -93,7 +95,7 @@ class RemotisanController extends Controller {
      * @param Request $request
      * @return LengthAwarePaginator
      */
-    public function history(Request $request)
+    public function history(Request $request): LengthAwarePaginator
     {
         return Execution::query()
             ->when(config("remotisan.history.should-scope", false), function (Builder $q) {
@@ -116,5 +118,18 @@ class RemotisanController extends Controller {
         $this->rt->requireAuthenticated();
 
         return FileManager::read($uuid);
+    }
+
+    /**
+     * @param $params
+     * @return void
+     */
+    private function validateParamsLength($params): void
+    {
+        $paramsLength = config("remotisan.commands.max_params_chars_length");
+
+        if (strlen($params) > $paramsLength) {
+            throw new \UnexpectedValueException("Parameters length exceeded {$paramsLength} chars");
+        }
     }
 }
