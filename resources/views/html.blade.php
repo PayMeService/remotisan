@@ -15,7 +15,7 @@
             </label>
         </div>
         <div>
-            <textarea placeholder="input options & arguments (if required)..." name="params" data-ng-model="params" style="width:70%"></textarea>
+            <textarea placeholder="input options & arguments (if required)... Max length 1000 chars" name="params" maxlength="1000" data-ng-model="params" style="width:70%"></textarea>
 
             <input type="button" data-ng-disabled="!showExecButton" class="btn btn-primary" data-ng-click="execute()" value="Execute" />
             <span data-ng-show="!showExecButton" class="fa fa-spinner fa-spin" style="margin-left: 15px"></span>
@@ -90,6 +90,15 @@
                 </tr>
                 </tfoot>
             </table>
+
+            <div class="pagination">
+                <button data-ng-repeat="link in historyPagination" class="btn"
+                        ng-click="getHistoryFromFullLink(link.url)"
+                        ng-class="{ 'btn-primary' : link.active, 'btn-default': !link.active }"
+                        ng-disabled="!link.url"
+                >@{{ link.label }} </button>
+            </div>
+
         </div>
     </div>
 

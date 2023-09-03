@@ -2,8 +2,8 @@
 
 namespace PayMe\Remotisan\Http\Controllers;
 
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use PayMe\Remotisan\CommandsRepository;
@@ -60,6 +60,8 @@ class RemotisanController extends Controller {
     {
         $this->rt->requireAuthenticated();
 
+        $this->validateParamsLength($request->json("params"));
+
         $command = $request->json("command");
         $params  = $request->json("params");
 
@@ -91,9 +93,9 @@ class RemotisanController extends Controller {
 
     /**
      * @param Request $request
-     * @return Collection
+     * @return LengthAwarePaginator
      */
-    public function history(Request $request): Collection
+    public function history(Request $request): LengthAwarePaginator
     {
         return Execution::query()
             ->when(config("remotisan.history.should-scope", false), function (Builder $q) {
@@ -101,7 +103,7 @@ class RemotisanController extends Controller {
             })
             ->orderByDesc("executed_at")
             ->limit(config("remotisan.history.max_records"))
-            ->get();
+            ->paginate(10);
     }
 
     /**
@@ -116,5 +118,18 @@ class RemotisanController extends Controller {
         $this->rt->requireAuthenticated();
 
         return FileManager::read($uuid);
+    }
+
+    /**
+     * @param $params
+     * @return void
+     */
+    private function validateParamsLength($params): void
+    {
+        $paramsLength = config("remotisan.commands.max_params_chars_length");
+
+        if (strlen($params) > $paramsLength) {
+            throw new \UnexpectedValueException("Parameters length exceeded {$paramsLength} chars");
+        }
     }
 }
