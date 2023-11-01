@@ -35,11 +35,11 @@ class ProcessExecutor
         $this->process = Process::fromShellCommandline($command, base_path(), null, null, null);
         $this->process->start();
         $pid = retry(10, function () {
-            if (!$this->process->getPid()) {
+            if (!$pid = $this->process->getPid()) {
                 throw new RemotisanException("Cannot receive PID");
             }
 
-            return $this->process->getPid();
+            return $pid;
         }, 10000);
 
         usleep(4000);
