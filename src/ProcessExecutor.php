@@ -12,18 +12,21 @@ use Illuminate\Console\Application;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\ProcessUtils;
 use Illuminate\Support\Str;
+use PayMe\Remotisan\Exceptions\RemotisanException;
 use Symfony\Component\Process\Process;
 
 class ProcessExecutor
 {
     protected Process $process;
+
     /**
      * @param string $uuid
      * @param string $output
      *
-     * @return int $PID
+     * @return ?int
+     * @throws \Exception
      */
-    public function execute(string $uuid, string $output): int
+    public function execute(string $uuid, string $output): ?int
     {
         $command = $this->compileShell($uuid);
 
@@ -31,7 +34,13 @@ class ProcessExecutor
 
         $this->process = Process::fromShellCommandline($command, base_path(), null, null, null);
         $this->process->start();
-        $pid = $this->process->getPid();
+        $pid = retry(10, function () {
+            if (!$this->process->getPid()) {
+                throw new RemotisanException("Cannot receive PID");
+            }
+
+            return $this->process->getPid();
+        }, 10000);
 
         usleep(4000);
         $this->process->stop();
