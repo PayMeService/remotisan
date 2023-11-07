@@ -145,7 +145,10 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
     protected function postFailed(): void
     {
         $this->executionRecord->markFailed();
-        event(new ExecutionFailed($this->executionRecord, $this->errorMessage));
+        event(new ExecutionFailed(
+            $this->executionRecord,
+            $this->errorMessage ?? ($this->process->getExitCodeText() . " - " . trim($this->process->getOutput()))
+        ));
     }
 
     protected function postCompleted(): void
