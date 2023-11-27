@@ -60,6 +60,8 @@ class RemotisanController extends Controller {
     {
         $this->rt->requireAuthenticated();
 
+        $request->validate(["command" => "required"]);
+
         $this->validateParamsLength($request->json("params"));
 
         $command = $request->json("command");
