@@ -86,8 +86,9 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
                 }
             });
 
-            while ($this->process->isRunning() && !$this->isErroneous) {
-                file_put_contents($this->pathToLog, $this->process->getIncrementalOutput(), FILE_APPEND);
+            // Iterates if its still running OR the process already stopped and has unhandled output
+            while (($output = $this->process->getIncrementalOutput()) || $this->process->isRunning() && !$this->isErroneous) {
+                file_put_contents($this->pathToLog, $output, FILE_APPEND);
 
                 if ($this->process->isRunning() && CacheManager::hasKillInstruction($this->executionRecord->job_uuid) && $this->recentSignalTime + 5 < time()) {
                     $this->isKilled = true;
