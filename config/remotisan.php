@@ -5,7 +5,6 @@ return [
     "commands" => [
         "allowed" => array_merge([
         ], json_decode(env('REMOTISAN_ALLOWED_COMMANDS', '[]'), true)),
-        "max_params_chars_length" => 1000
     ],
     "logger" => [
         "path" => env('REMOTISAN_LOG_PATH', storage_path('temp')),
@@ -16,5 +15,6 @@ return [
     ],
     "kill_switch_key_prefix"    => "remotisan:killing",
     "allow_process_kill"        => true,
-    "super_users"               => []
+    "super_users"               => [],
+    "max_params_chars_length" => 1000,
 ];
