@@ -24,8 +24,12 @@ use Symfony\Component\Process\Process;
 class ProcessBrokerCommand extends Command implements SignalableCommandInterface
 {
 
+    const SHOULD_NOT_STOP_ERROR_MESSAGES_REMOVE = [
+        "Xdebug: *.\n",
+    ];
+
     const SHOULD_NOT_STOP_ERROR_MESSAGES = [
-        "Xdebug:"
+        "*/* [*] *%*", // Laravel Progress Bar
     ];
 
     /**
@@ -80,16 +84,31 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
 
         try {
             $this->process->start(function ($type, $data) {
-                if (Process::ERR === $type && !Str::startsWith($data, self::SHOULD_NOT_STOP_ERROR_MESSAGES)) {
-                    $this->isErroneous = true;
-                    $this->errorMessage = $data;
+                if (Process::ERR === $type) {
+                    foreach (self::SHOULD_NOT_STOP_ERROR_MESSAGES_REMOVE as $remove) {
+                        $remove = preg_quote($remove, '/');
+                        $remove = str_replace('\*', '.*', $remove);
+
+                        // Use regular expression to replace in the subject
+                        $data = preg_replace('/' . $remove . '/', '', $data);
+                    }
+
+                    $trimData = trim($data);
+                    if ($trimData != "") {
+                        if (Str::is(self::SHOULD_NOT_STOP_ERROR_MESSAGES, Str::before($trimData, "\n"))) {
+                            file_put_contents($this->pathToLog, $trimData."\n", FILE_APPEND);
+                        } else {
+                            $this->isErroneous  = true;
+                            $this->errorMessage = $data;
+                        }
+                    }
+                } else {
+                    file_put_contents($this->pathToLog, trim($data)."\n", FILE_APPEND);
                 }
             });
 
             // Iterates if its still running OR the process already stopped and has unhandled output
             while (($output = $this->process->getIncrementalOutput()) || $this->process->isRunning() && !$this->isErroneous) {
-                file_put_contents($this->pathToLog, $output, FILE_APPEND);
-
                 if ($this->process->isRunning() && CacheManager::hasKillInstruction($this->executionRecord->job_uuid) && $this->recentSignalTime + 5 < time()) {
                     $this->isKilled = true;
                     $this->recentSignalTime = time();
