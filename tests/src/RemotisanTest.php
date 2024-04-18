@@ -14,7 +14,6 @@ class RemotisanTest extends Orchestra
 {
     protected function setUp(): void
     {
-        $this->remotisan = new Remotisan(new CommandsRepository(), new ProcessExecutor());
         parent::setUp();
     }
 
