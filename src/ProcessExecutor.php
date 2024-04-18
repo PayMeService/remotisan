@@ -81,6 +81,10 @@ class ProcessExecutor
                 return $this->compileArrayInput($key, $value);
             }
 
+            if (str_starts_with($value, "'") && str_ends_with($value, "'") && Str::isJson($json = substr($value, 1, -1))) {
+                return $json;
+            }
+
             if (! is_numeric($value) && ! preg_match('/^(-.$|--.*)/i', $value)) {
                 $value = static::escapeArgument($value);
             }
