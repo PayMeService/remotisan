@@ -170,7 +170,8 @@ $http.get($scope.baseUrl + "/execute/" + $scope.log.uuid)
 .then(function (response) {
 $scope.locationPath($scope.log.uuid);
 console.log(response.data);
-$scope.log.content = response.data.content.join("\n");
+term.clear();
+term.write(response.data.content.join("\n"));
 if (!response.data.isEnded) {
 $timeout( function(){ $scope.readLog(); }, 1000);
 }
