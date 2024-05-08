@@ -103,5 +103,10 @@
     </div>
 
     <h2>Logger</h2>
-    <pre style="width: 90%; background-color: black; color: darkcyan;font-family: 'Space Mono', sans-serif;">@{{ log.content }}</pre>
+
+    <div id="terminal"></div>
+    <script>
+        var term = new Terminal({cols: 182});
+        term.open(document.getElementById('terminal'));
+    </script>
 </div>
