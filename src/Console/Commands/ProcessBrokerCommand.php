@@ -83,6 +83,8 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
         $this->initializeProcess();
 
         try {
+            // Start callback is being called only when new output arrived.
+            // If no output for an hour because of long query, for example, we won't have the start callback called, and cannot kill inside.
             $this->process->start(function ($type, $data) {
                 if (Process::ERR === $type) {
                     foreach (self::SHOULD_NOT_STOP_ERROR_MESSAGES_REMOVE as $remove) {
@@ -187,7 +189,9 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
     {
         $this->executionRecord->refresh();
 
-        if ($this->isErroneous || !$this->process->isSuccessful()) {
+        if ($this->process->getTermSignal()) {
+            $this->postKill();
+        } elseif ($this->isErroneous || !$this->process->isSuccessful()) {
             $this->postFailed();
         } else {
             $this->postCompleted();
