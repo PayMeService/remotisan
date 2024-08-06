@@ -189,7 +189,7 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
     {
         $this->executionRecord->refresh();
 
-        if ($this->process->getTermSignal()) {
+        if ($this->process->hasBeenSignaled()) {
             $this->postKill();
         } elseif ($this->isErroneous || !$this->process->isSuccessful()) {
             $this->postFailed();
