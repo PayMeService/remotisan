@@ -4,7 +4,7 @@
     <h2>Commands</h2>
     <form class="form-inline" data-ng-submit="execute()" data-ng-init='init("{{ config('remotisan.url') }}")'>
         <div>
-            <label class="my-1 mr-2" for="inlineFormCustomSelectPref">Preference</label>
+            <label class="my-1 mr-2" for="command">Preference</label>
             <select required class="custom-select my-1 mr-sm-2" data-ng-model="command" name="command"
                     data-ng-options='c.name as (c.name + " - " + c.description) for c in commands' data-ng-change="onChangeDropdownValue()">
             </select>
@@ -42,6 +42,18 @@
     <div class="history-wrapper"> <!-- show when history button clicked! -->
         <button title="show-hide history" data-ng-click="showHistory = !showHistory;"><span data-ng-hide="!showHistory">Hide</span><span data-ng-hide="showHistory">Show</span> History</button>
         <div data-ng-show="showHistory">
+            <br>
+            <label class="my-1 mr-2" for="user">Select User</label>
+            <select required class="custom-select my-1 mr-sm-2" data-ng-model="user" name="user"
+                    data-ng-options='user for user in users track by user' data-ng-change="refreshHistoryIfNeeded()">
+            </select>
+            <br>
+            <div style="display: ruby;">
+                <label for="searchable">Command:</label>
+                <input type="search" class="form-control input-sm" data-ng-model="searchable" style="width: auto;" maxlength="100"/>
+                <button class="btn btn-primary" data-ng-click="refreshHistoryIfNeeded()">Filter</button>
+            </div>
+            <br>
             <table class="table table-bordered">
                 <thead class="thead-dark">
                 <tr>

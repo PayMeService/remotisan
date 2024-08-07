@@ -5,6 +5,9 @@
 {{ $ngApp ?? "RemotisanApp" }}.controller('RemotisanController', ["$scope", "$http", "$timeout", "$sce", "$location", function($scope, $http, $timeout, $sce, $location) {
 $scope.baseUrl = '';
 $scope.commands = [];
+$scope.users = [];
+$scope.user = 'All';
+$scope.searchable = '';
 $scope.historyRecords = [];
 $scope.command = null;
 $scope.params = '';
@@ -32,6 +35,7 @@ $scope.getHistory();
 $scope.init = function(baseUrl) {
 $scope.baseUrl = baseUrl;
 $scope.fetchCommands();
+$scope.fetchFiltersData();
 if($location.path() != '') {
 $scope.log.uuid = $location.path().replace('/', '');
 $scope.readLog();
@@ -99,26 +103,27 @@ if($scope.showHistory) { $scope.getHistory(); }
 }
 
 $scope.getHistoryFromFullLink = function(fullLink) {
-$scope.getHistory(fullLink.split("?page=")[1]);
+    $scope.getHistory(fullLink.split("?page=")[1]);
 }
 
 $scope.getHistory = function(page) {
 
-page = page || 1;
+    var page = page || 1;
+    var filters = "?page=" + page + "&user=" + $scope.user + "&command=" + $scope.searchable;
 
-$http.get($scope.baseUrl + "/history?page=" + page).then(function(response){
+    $http.get($scope.baseUrl + "/history" + filters).then(function(response) {
 
-$scope.historyRecords = response.data.data;
+        $scope.historyRecords = response.data.data;
 
-linksLength = response.data.links.length;
-response.data.links[0].label = "Previous";
-response.data.links[linksLength-1].label = "Next";
+        linksLength = response.data.links.length;
+        response.data.links[0].label = "Previous";
+        response.data.links[linksLength-1].label = "Next";
 
-$scope.historyPagination = response.data.links;
+        $scope.historyPagination = response.data.links;
 
-}, function(response){
-console.log(response);
-});
+    }, function(response) {
+        console.log(response);
+    });
 };
 
 $scope.killProcess = function(uuid){
@@ -145,12 +150,21 @@ alert(alertInfo);
 };
 
 $scope.fetchCommands = function () {
-$http.get($scope.baseUrl + "/commands")
-.then(function (response) {
-$scope.commands = response.data.commands;
-}, function (response) {
-console.log(response);
-});
+    $http.get($scope.baseUrl + "/commands")
+    .then(function (response) {
+        $scope.commands = response.data.commands;
+    }, function (response) {
+        console.log(response);
+    });
+};
+
+$scope.fetchFiltersData = function () {
+    $http.get($scope.baseUrl + "/filters")
+    .then(function (response) {
+        $scope.users = response.data.users.concat("All");
+    }, function (response) {
+        console.log(response);
+    });
 };
 
 $scope.resetLog = function() {
