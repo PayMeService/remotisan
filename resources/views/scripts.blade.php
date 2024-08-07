@@ -171,7 +171,7 @@ $http.get($scope.baseUrl + "/execute/" + $scope.log.uuid)
 $scope.locationPath($scope.log.uuid);
 console.log(response.data);
 term.clear();
-term.write(response.data.content.join("\n"));
+response.data.content.forEach((line) => term.writeln(line));
 if (!response.data.isEnded) {
 $timeout( function(){ $scope.readLog(); }, 1000);
 }
