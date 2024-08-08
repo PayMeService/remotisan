@@ -2,8 +2,10 @@
 
 namespace PayMe\Remotisan\Http\Controllers;
 
+use Illuminate\Contracts\Filesystem\FileNotFoundException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use PayMe\Remotisan\CommandsRepository;
@@ -56,6 +58,20 @@ class RemotisanController extends Controller {
      *
      * @return array
      */
+    public function filters(Request $request): array
+    {
+        $this->rt->requireAuthenticated();
+
+        return [
+            "users" => Execution::getUsers()
+        ];
+    }
+
+    /**
+     * @param Request $request
+     *
+     * @return array
+     */
     public function execute(Request $request): array
     {
         $this->rt->requireAuthenticated();
@@ -78,9 +94,9 @@ class RemotisanController extends Controller {
      * @param Request   $request
      * @param string    $uuid
      *
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
-    public function sendKillSignal(Request $request, string $uuid)
+    public function sendKillSignal(Request $request, string $uuid): JsonResponse
     {
         $code = 200;
         try {
@@ -99,10 +115,21 @@ class RemotisanController extends Controller {
      */
     public function history(Request $request): LengthAwarePaginator
     {
+        $this->rt->requireAuthenticated();
+
+        $shouldScope = config("remotisan.history.should-scope", false); // Get results only for the logged user
+        $command = $request->input("command");
+        $userName = null;
+
+        if ($shouldScope) {
+            $userName = $this->rt->getUserIdentifier();
+        } elseif ($request->input("user") != "null") {
+            $userName = $request->input("user");
+        }
+
         return Execution::query()
-            ->when(config("remotisan.history.should-scope", false), function (Builder $q) {
-                $q->where("user_identifier", $this->rt->getUserIdentifier());
-            })
+            ->when($userName, fn(Builder $q) => $q->where("user_identifier", $userName))
+            ->when($command, fn(Builder $q) => $q->whereRaw("CONCAT(command, ' ' , parameters) LIKE '%{$command}%'"))
             ->orderByDesc("executed_at")
             ->limit(config("remotisan.history.max_records"))
             ->paginate(10);
@@ -113,7 +140,7 @@ class RemotisanController extends Controller {
      * @param         $uuid
      *
      * @return array
-     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
+     * @throws FileNotFoundException
      */
     public function read(Request $request, $uuid): array
     {

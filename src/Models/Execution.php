@@ -28,7 +28,9 @@ class Execution extends Model
 
     /**
      * Update process status with shadow update of finished_at.
+     *
      * @param int $status
+     * @param bool $save
      * @return void
      */
     public function updateProcessStatus(int $status, bool $save = true): void
@@ -46,6 +48,8 @@ class Execution extends Model
 
     /**
      * Facade to set status killed transparently to developers.
+     *
+     * @param bool $save
      * @return void
      */
     public function markKilled(bool $save = true): void
@@ -56,6 +60,8 @@ class Execution extends Model
 
     /**
      * Facade to set status failed transparently to developers.
+     *
+     * @param bool $save
      * @return void
      */
     public function markFailed(bool $save = true): void
@@ -70,6 +76,8 @@ class Execution extends Model
 
     /**
      * Facade to set status killed transparently to developers.
+     *
+     * @param bool $save
      * @return void
      */
     public function markCompleted(bool $save = true): void
@@ -85,5 +93,19 @@ class Execution extends Model
     public static function getByJobUuid(string $uuid): ?Execution
     {
         return static::query()->where("job_uuid", $uuid)->first();
+    }
+
+    /**
+     * Get all users.
+     *
+     * @return array
+     */
+    public static function getUsers(): array
+    {
+        return Execution::query()
+            ->select(["user_identifier"])
+            ->distinct()
+            ->pluck("user_identifier")
+            ->toArray();
     }
 }
