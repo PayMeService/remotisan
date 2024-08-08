@@ -6,7 +6,7 @@
 $scope.baseUrl = '';
 $scope.commands = [];
 $scope.users = [];
-$scope.user = 'All';
+$scope.user = null;
 $scope.searchable = '';
 $scope.historyRecords = [];
 $scope.command = null;
@@ -108,8 +108,8 @@ $scope.getHistoryFromFullLink = function(fullLink) {
 
 $scope.getHistory = function(page) {
 
-    var page = page || 1;
-    var filters = "?page=" + page + "&user=" + $scope.user + "&command=" + $scope.searchable;
+    page = page || 1;
+    var filters = new URLSearchParams({page: page, user: $scope.user, command: $scope.searchable}).toString()
 
     $http.get($scope.baseUrl + "/history" + filters).then(function(response) {
 
@@ -159,9 +159,10 @@ $scope.fetchCommands = function () {
 };
 
 $scope.fetchFiltersData = function () {
-    $http.get($scope.baseUrl + "/filters")
-    .then(function (response) {
-        $scope.users = response.data.users.concat("All");
+    $http.get($scope.baseUrl + "/filters").then(function (response) {
+        $scope.users = [...response.data.users.map(item => ({ key: item, name: item })), { key: "null", name: "All" }];
+        console.log("Users:");
+        console.log($scope.users);
     }, function (response) {
         console.log(response);
     });

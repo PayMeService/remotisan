@@ -123,7 +123,7 @@ class RemotisanController extends Controller {
 
         if ($shouldScope) {
             $userName = $this->rt->getUserIdentifier();
-        } elseif ($request->input("user") != "All") {
+        } elseif ($request->input("user") != "null") {
             $userName = $request->input("user");
         }
 

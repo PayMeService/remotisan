@@ -5,7 +5,7 @@
     <form class="form-inline" data-ng-submit="execute()" data-ng-init='init("{{ config('remotisan.url') }}")'>
         <div>
             <label class="my-1 mr-2" for="command">Preference</label>
-            <select required class="custom-select my-1 mr-sm-2" data-ng-model="command" name="command"
+            <select required class="custom-select my-1 mr-sm-2" data-ng-model="command" id="command"
                     data-ng-options='c.name as (c.name + " - " + c.description) for c in commands' data-ng-change="onChangeDropdownValue()">
             </select>
             <input type="checkbox" id="show_help_checkbox" name="show_help_checkbox" data-ng-model="showHelp">
@@ -44,13 +44,14 @@
         <div data-ng-show="showHistory">
             <br>
             <label class="my-1 mr-2" for="user">Select User</label>
-            <select required class="custom-select my-1 mr-sm-2" data-ng-model="user" name="user"
-                    data-ng-options='user for user in users track by user' data-ng-change="refreshHistoryIfNeeded()">
+            <select required class="custom-select my-1 mr-sm-2" data-ng-model="user" id="user"
+                    data-ng-options='user.key as user.name for user in users track by user.key'
+                    data-ng-change="refreshHistoryIfNeeded()">
             </select>
             <br>
             <div style="display: ruby;">
                 <label for="searchable">Command:</label>
-                <input type="search" class="form-control input-sm" data-ng-model="searchable" style="width: auto;" maxlength="100"/>
+                <input type="search" class="form-control input-sm" id="searchable" data-ng-model="searchable" style="width: auto;" maxlength="100"/>
                 <button class="btn btn-primary" data-ng-click="refreshHistoryIfNeeded()">Filter</button>
             </div>
             <br>
