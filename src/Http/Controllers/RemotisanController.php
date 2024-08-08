@@ -129,10 +129,7 @@ class RemotisanController extends Controller {
 
         return Execution::query()
             ->when($userName, fn(Builder $q) => $q->where("user_identifier", $userName))
-            ->when($command, fn(Builder $q) => $q->where(function (Builder $q) use ($command) {
-                $q->whereRaw("parameters LIKE '%{$command}%'")
-                    ->orWhereRaw("command LIKE '%{$command}%'");
-            }))
+            ->when($command, fn(Builder $q) => $q->whereRaw("CONCAT(command, ' ' , parameters) LIKE '%{$command}%'"))
             ->orderByDesc("executed_at")
             ->limit(config("remotisan.history.max_records"))
             ->paginate(10);
