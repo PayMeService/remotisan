@@ -111,7 +111,7 @@ $scope.getHistory = function(page) {
     page = page || 1;
     var filters = new URLSearchParams({page: page, user: $scope.user, command: $scope.searchable}).toString()
 
-    $http.get($scope.baseUrl + "/history" + filters).then(function(response) {
+    $http.get($scope.baseUrl + "/history?" + filters).then(function(response) {
 
         $scope.historyRecords = response.data.data;
 
