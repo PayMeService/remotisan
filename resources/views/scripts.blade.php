@@ -15,6 +15,7 @@ $scope.$location = {};
 $scope.showHistory = false;
 $scope.showExecButton = true;
 $scope.showHelp = false;
+$scope.page = 1;
 $scope.log = {
 uuid: null,
 content: "",
@@ -108,8 +109,8 @@ $scope.getHistoryFromFullLink = function(fullLink) {
 
 $scope.getHistory = function(page) {
 
-    page = page || 1;
-    var filters = new URLSearchParams({page: page, user: $scope.user, command: $scope.searchable}).toString()
+    $scope.page = page || $scope.page;
+    var filters = new URLSearchParams({page: $scope.page, user: $scope.user, command: $scope.searchable}).toString()
 
     $http.get($scope.baseUrl + "/history?" + filters).then(function(response) {
 
