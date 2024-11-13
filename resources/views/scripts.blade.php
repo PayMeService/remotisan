@@ -181,22 +181,24 @@ navigator.clipboard.writeText(text);
 }
 
 $scope.readLog = function (log_uuid = null) {
-$scope.log.uuid = log_uuid || $scope.log.uuid;
-$http.get($scope.baseUrl + "/execute/" + $scope.log.uuid)
-.then(function (response) {
-$scope.locationPath($scope.log.uuid);
-console.log(response.data);
-term.clear();
-response.data.content.forEach((line) => term.writeln(line));
-if (!response.data.isEnded) {
-$timeout( function(){ $scope.readLog(); }, 1000);
-}
-$scope.unlockExecButton();
-$scope.refreshHistoryIfNeeded();
-}, function (response) {
-console.log(response);
-$scope.unlockExecButton();
-$scope.refreshHistoryIfNeeded();
-});
+
+    $scope.log.uuid = log_uuid || $scope.log.uuid;
+
+    $http.get($scope.baseUrl + "/execute/" + $scope.log.uuid).then(function (response) {
+
+        $scope.locationPath($scope.log.uuid);
+        console.log(response.data);
+        term.clear();
+        response.data.content.forEach((line) => term.writeln(line));
+
+        if (!response.data.isEnded) {
+            $timeout( function(){ $scope.readLog(); }, 1000);
+        }
+
+        $scope.unlockExecButton();
+    }, function (response) {
+        console.log(response);
+        $scope.unlockExecButton();
+    });
 };
 }]);
