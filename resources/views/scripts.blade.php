@@ -15,6 +15,7 @@ $scope.$location = {};
 $scope.showHistory = false;
 $scope.showExecButton = true;
 $scope.showHelp = false;
+$scope.page = 1;
 $scope.log = {
 uuid: null,
 content: "",
@@ -108,8 +109,8 @@ $scope.getHistoryFromFullLink = function(fullLink) {
 
 $scope.getHistory = function(page) {
 
-    page = page || 1;
-    var filters = new URLSearchParams({page: page, user: $scope.user, command: $scope.searchable}).toString()
+    $scope.page = page || $scope.page;
+    var filters = new URLSearchParams({page: $scope.page, user: $scope.user, command: $scope.searchable}).toString()
 
     $http.get($scope.baseUrl + "/history?" + filters).then(function(response) {
 
@@ -180,22 +181,24 @@ navigator.clipboard.writeText(text);
 }
 
 $scope.readLog = function (log_uuid = null) {
-$scope.log.uuid = log_uuid || $scope.log.uuid;
-$http.get($scope.baseUrl + "/execute/" + $scope.log.uuid)
-.then(function (response) {
-$scope.locationPath($scope.log.uuid);
-console.log(response.data);
-term.clear();
-response.data.content.forEach((line) => term.writeln(line));
-if (!response.data.isEnded) {
-$timeout( function(){ $scope.readLog(); }, 1000);
-}
-$scope.unlockExecButton();
-$scope.refreshHistoryIfNeeded();
-}, function (response) {
-console.log(response);
-$scope.unlockExecButton();
-$scope.refreshHistoryIfNeeded();
-});
+
+    $scope.log.uuid = log_uuid || $scope.log.uuid;
+
+    $http.get($scope.baseUrl + "/execute/" + $scope.log.uuid).then(function (response) {
+
+        $scope.locationPath($scope.log.uuid);
+        console.log(response.data);
+        term.clear();
+        response.data.content.forEach((line) => term.writeln(line));
+
+        if (!response.data.isEnded) {
+            $timeout( function(){ $scope.readLog(); }, 1000);
+        }
+
+        $scope.unlockExecButton();
+    }, function (response) {
+        console.log(response);
+        $scope.unlockExecButton();
+    });
 };
 }]);
