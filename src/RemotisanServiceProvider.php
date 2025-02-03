@@ -2,8 +2,11 @@
 
 namespace PayMe\Remotisan;
 
+use Illuminate\Contracts\Container\BindingResolutionException;
+use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Support\ServiceProvider;
 use PayMe\Remotisan\Console\Commands\ProcessBrokerCommand;
+use Throwable;
 
 class RemotisanServiceProvider extends ServiceProvider
 {
@@ -31,6 +34,8 @@ class RemotisanServiceProvider extends ServiceProvider
         $this->ensureSignalsConstants();
 
         $this->commands([ProcessBrokerCommand::class]);
+
+        $this->logLastException();
     }
 
     /**
@@ -95,6 +100,20 @@ class RemotisanServiceProvider extends ServiceProvider
             if (!defined($const)) {
                 define($const, $value);
             }
+        }
+    }
+
+    /**
+     * @return void
+     * @throws BindingResolutionException
+     */
+    protected function logLastException(): void
+    {
+        $callback = fn(ExceptionHandler $handler) => $handler->reportable(fn(Throwable $e) => app()->instance('lastException', $e));
+        $this->app->afterResolving(ExceptionHandler::class, $callback);
+
+        if ($this->app->resolved(ExceptionHandler::class)) {
+            $callback($this->app->make(ExceptionHandler::class));
         }
     }
 }

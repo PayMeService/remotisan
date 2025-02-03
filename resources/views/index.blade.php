@@ -1,4 +1,6 @@
-<html lang="{{ app()->getLocale() }}">
+@php use Illuminate\Support\Facades\File;use Illuminate\Support\Str; @endphp
+<!DOCTYPE html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 
 <head>
     <meta charset="utf-8">
@@ -12,18 +14,34 @@
         Remotisan
     </title>
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
-    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
-    <link rel="stylesheet" href="https://xtermjs.org/css/xterm.css">
-    <script src="https://xtermjs.org/js/xterm.js"></script>
+    @php($files = collect(File::allFiles(base_path() . "/vendor/paymeservice/remotisan/dist/assets"))->keyBy(fn($path) => Str::afterLast($path, ".")))
+    <style>{!! File::get($files->get("css")) !!}</style>
 </head>
-<body data-ng-app="RemotisanApp">
-@include("remotisan::html")
+
+<body class="bg-gray-50">
+    <header class="bg-indigo-600 shadow">
+        <div class="container mx-auto px-4 py-6">
+            <h1 class="text-white text-3xl font-bold">Remotisan Control Panel</h1>
+        </div>
+    </header>
+    <main class="container mx-auto px-4 py-10">
+        <section class="text-center mb-10">
+            <h2 class="text-2xl font-semibold text-gray-800">Welcome to Remotisan</h2>
+            <p class="mt-2 text-gray-600">Manage your remote commands with ease.</p>
+        </section>
+
+        <section id="react-root">
+            <!-- React components from resources/react/components will be rendered here -->
+        </section>
+    </main>
+    <footer class="bg-gray-200">
+        <div class="container mx-auto text-center p-4 text-gray-700">
+            &copy; 2023 Remotisan. All rights reserved.
+        </div>
+    </footer>
 </body>
 <script>
-    @include("remotisan::scripts")
+        window.remotisanBaseUrl = "{{ config('remotisan.url') }}";
 </script>
-<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+<script >{!! File::get($files->get("js")) !!}</script>
 </html>

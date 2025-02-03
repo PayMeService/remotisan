@@ -1,0 +1,18 @@
+{
+  "name": "remotisan-package",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.0.3",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "he": "^1.2.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "xterm": "^5.3.0"
+  }
+}

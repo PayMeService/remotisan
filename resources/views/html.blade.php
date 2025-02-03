@@ -14,12 +14,23 @@
                 <span data-ng-show="showHelp">Hide commands help</span>
             </label>
         </div>
-        <div>
-            <textarea placeholder="input options & arguments (if required)... Max length 1000 chars" name="params" maxlength="1000" data-ng-model="params" style="width:70%"></textarea>
 
-            <input type="button" data-ng-disabled="!showExecButton" class="btn btn-primary" data-ng-click="execute()" value="Execute" />
-            <span data-ng-show="!showExecButton" class="fa fa-spinner fa-spin" style="margin-left: 15px"></span>
+        <div>
+            <label><input type="radio" name="mode" value="single" data-ng-model="mode" checked> Single Command</label>
+            <label><input type="radio" name="mode" value="bulk" data-ng-model="mode"> Bulk Commands</label>
         </div>
+
+        <div data-ng-show="mode === 'single'">
+            <textarea placeholder="input options & arguments (if required)... Max length 1000 chars" name="params" maxlength="1000" data-ng-model="params" style="width:70%"></textarea>
+        </div>
+
+        <div data-ng-show="mode === 'bulk'">
+            <textarea placeholder="Enter one command per line..." name="bulkParams" data-ng-model="bulkParams" style="width:70%; height:200px"></textarea>
+        </div>
+
+        <input type="button" data-ng-disabled="!showExecButton" class="btn btn-primary" data-ng-click="execute()" value="Execute" />
+        <span data-ng-show="!showExecButton" class="fa fa-spinner fa-spin" style="margin-left: 15px"></span>
+
         <hr style="opacity:0; display:block; width:100%;"/>
 
         <div data-ng-show="command && showHelp">
