@@ -25,40 +25,37 @@ const CommandExecution = ({ baseUrl = '', activeUuid, setActiveUuid }) => {
             .catch((err) => console.error(err));
     }, [baseUrl]);
 
+    function createFetchPromise(commandParams) {
+        return fetch(`${baseUrl}/execute`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken
+            },
+            body: JSON.stringify({command: commandSelected, params: commandParams}),
+        }).then((res) => res.json());
+    }
+
     const executeCommand = () => {
         setLoading(true);
         let commandRequests = [];
 
         if (mode === 'single') {
             commandRequests.push(
-                fetch(`${baseUrl}/execute`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken
-                    },
-                    body: JSON.stringify({ command: commandSelected, params }),
-                }).then((res) => res.json())
+                createFetchPromise(params)
             );
         } else if (mode === 'bulk') {
             // each non-empty line is a command. Adjust as needed.
-            const cmds = bulkParams
+            const paramsArray = bulkParams
                 .split('\n')
                 .map((line) => line.trim())
                 .filter((line) => line);
 
-            commandRequests = cmds.map((cmd) =>
-                fetch(`${baseUrl}/execute`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ command: cmd, params: '' }),
-                }).then((res) => res.json())
-            );
+            commandRequests = paramsArray.map((params) => createFetchPromise(params));
         }
 
         Promise.all(commandRequests)
             .then((results) => {
-                console.log('Execution results:', results);
                 setLoading(false);
 
                 // Dispatch a custom event for last result so that TerminalLogger can process it.
@@ -73,7 +70,7 @@ const CommandExecution = ({ baseUrl = '', activeUuid, setActiveUuid }) => {
 
     return (
         <div className="p-6 bg-white rounded shadow">
-            <h2 className="text-2xl font-bold mb-4">Commands</h2>
+            <h2 className="text-2xl font-bold mb-4">Execute</h2>
             <form
                 onSubmit={(e) => {
                     e.preventDefault();
@@ -82,7 +79,7 @@ const CommandExecution = ({ baseUrl = '', activeUuid, setActiveUuid }) => {
             >
                 <div className="mb-4">
                     <label htmlFor="command" className="block text-gray-700 font-medium mb-1">
-                        Preference
+                        Select a command
                     </label>
                     <div className="flex items-center space-x-4">
                         <select

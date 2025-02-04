@@ -44,8 +44,23 @@ const HistoryTable = ({ baseUrl = '', activeUuid, setActiveUuid, historyRefresh 
 
     const handleReRun = (command, params) => {
         if (window.confirm(`Are you sure to re-run "${command} ${params}"?`)) {
-            console.log('Re-run command', command, params);
-            // You would trigger your command execution here.
+            fetch(`${baseUrl}/execute`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: JSON.stringify({ command, params }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert("Command re-run successfully.");
+                setActiveUuid(data.id);
+            })
+            .catch(error => {
+                alert("Error re-running command");
+                console.error(error);
+            });
         }
     };
 
@@ -64,12 +79,40 @@ const HistoryTable = ({ baseUrl = '', activeUuid, setActiveUuid, historyRefresh 
         }
     };
 
+  // Returns the correct Bootstrap label class based on process status
+  const getLabelClass = (status) => {
+    if (status === 1)
+      return "inline-block rounded bg-blue-500 px-2 py-1 text-xs font-semibold text-white";
+    if (status === 2)
+      return "inline-block rounded bg-green-500 px-2 py-1 text-xs font-semibold text-white";
+    return "inline-block rounded bg-red-500 px-2 py-1 text-xs font-semibold text-white";
+  };
+
+  // Converts a status code to a human-readable string
+  const statusCodeToHumanReadable = (status) => {
+    const procStatuses = {
+      1: "RUNNING",
+      2: "COMPLETED",
+      3: "FAILED",
+      4: "KILLED"
+    };
+    return procStatuses[status] || "UNKNOWN";
+  };
+
+  // If the process was killed, show who killed it
+  const showKilledByIfStatusKilled = (record) => {
+    if (record.process_status === 4 && record.killed_by) {
+      return ` (${record.killed_by})`;
+    }
+    return "";
+  };
+
     return (
         <div className="p-4 bg-white rounded shadow">
             <h2 className="text-2xl font-bold mb-4">History</h2>
             <div className="mb-4 flex flex-wrap items-center gap-4">
-                <div className="flex flex-col">
-                    <label htmlFor="userSelect" className="mb-1 text-sm font-medium text-gray-700">
+                <div className="flex items-center gap-2">
+                    <label htmlFor="userSelect" className="text-sm font-medium text-gray-700">
                         Select User
                     </label>
                     <select
@@ -85,8 +128,8 @@ const HistoryTable = ({ baseUrl = '', activeUuid, setActiveUuid, historyRefresh 
                         ))}
                     </select>
                 </div>
-                <div className="flex flex-col">
-                    <label htmlFor="searchable" className="mb-1 text-sm font-medium text-gray-700">
+                <div className="flex items-center gap-2">
+                    <label htmlFor="searchable" className="text-sm font-medium text-gray-700">
                         Command:
                     </label>
                     <input
@@ -100,11 +143,12 @@ const HistoryTable = ({ baseUrl = '', activeUuid, setActiveUuid, historyRefresh 
                 </div>
                 <button
                     onClick={handleFilter}
-                    className="mt-6 sm:mt-0 bg-blue-500 text-white font-semibold py-2 px-4 rounded hover:bg-blue-600 transition duration-300"
+                    className="bg-blue-500 text-white font-semibold py-2 px-4 rounded hover:bg-blue-600 transition duration-300"
                 >
                     Filter
                 </button>
             </div>
+
             <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-100">
@@ -116,7 +160,7 @@ const HistoryTable = ({ baseUrl = '', activeUuid, setActiveUuid, historyRefresh 
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-700">Proc Status</th>
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-700">Date</th>
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-700">Finished</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-700">Actions</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 w-40">Actions</th>
                     </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
@@ -127,7 +171,7 @@ const HistoryTable = ({ baseUrl = '', activeUuid, setActiveUuid, historyRefresh 
                             <td className="px-4 py-2 text-sm text-gray-900" title={`${record.command} ${record.parameters}`}>
                                 <button
                                     onClick={() => navigator.clipboard.writeText(record.parameters)}
-                                    className="mr-2 bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-medium px-2 py-1 rounded"
+                                    className="cursor-pointer mr-2 bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-medium px-2 py-1 rounded"
                                 >
                                     Copy
                                 </button>
@@ -141,25 +185,29 @@ const HistoryTable = ({ baseUrl = '', activeUuid, setActiveUuid, historyRefresh 
                     {record.job_uuid}
                   </span>
                             </td>
-                            <td className="px-4 py-2 text-sm text-gray-900">{record.process_status}</td>
+                            <td className="px-4 py-2 text-sm text-gray-900 flex">
+                              <span className={getLabelClass(record.process_status)}>
+                                {statusCodeToHumanReadable(record.process_status)}{showKilledByIfStatusKilled(record)}
+                              </span>
+                            </td>
                             <td className="px-4 py-2 text-sm text-gray-900">
                                 {new Date(record.executed_at * 1000).toLocaleString()}
                             </td>
                             <td className="px-4 py-2 text-sm text-gray-900">
                                 {record.finished_at ? new Date(record.finished_at * 1000).toLocaleString() : ''}
                             </td>
-                            <td className="px-4 py-2 text-sm">
+                            <td className="px-2 py-2 text-sm">
                                 {record.process_status === 1 && (
                                     <span
                                         onClick={() => handleKill(record.job_uuid)}
-                                        className="cursor-pointer text-red-600 hover:underline mr-2"
+                                        className="cursor-pointer inline-block rounded bg-red-500 px-1 py-1 text-xs font-semibold text-white mr-2"
                                     >
                       Kill Process
                     </span>
                                 )}
                                 <span
                                     onClick={() => handleReRun(record.command, record.parameters)}
-                                    className="cursor-pointer text-blue-600 hover:underline"
+                                    className="cursor-pointer inline-block rounded bg-cyan-500 px-1 py-1 text-xs font-semibold text-white"
                                 >
                     Re-Run
                   </span>

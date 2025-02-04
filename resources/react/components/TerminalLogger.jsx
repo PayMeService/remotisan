@@ -6,7 +6,6 @@ const TerminalLogger = ({ activeUuid , baseUrl = '', setHistoryRefresh}) => {
     const terminalRef = useRef(null);
     const xtermInstance = useRef(null);
     const [lines, setLines] = useState([]);
-    console.log('TerminalLogger', activeUuid);
 
     useEffect(() => {
         // Initialize the xterm terminal instance on component mount
@@ -26,6 +25,8 @@ const TerminalLogger = ({ activeUuid , baseUrl = '', setHistoryRefresh}) => {
         setLines([]);
         if (xtermInstance.current) xtermInstance.current.clear();
 
+        let timeoutId;
+
         // Polling function that fetches logs from the backend.
         const readLog = () => {
             fetch(`${baseUrl}/execute/${activeUuid}`)
@@ -37,7 +38,7 @@ const TerminalLogger = ({ activeUuid , baseUrl = '', setHistoryRefresh}) => {
                     }
                     // If not ended, schedule another poll after 1 second.
                     if (!data.isEnded) {
-                        setTimeout(readLog, 1000);
+                        timeoutId = setTimeout(readLog, 1000);
                     } else {
                         // Command execution is finished.
                         // Notify parent to refresh the HistoryTable.
@@ -55,6 +56,12 @@ const TerminalLogger = ({ activeUuid , baseUrl = '', setHistoryRefresh}) => {
         // Start polling the log.
         readLog();
 
+        // Cleanup function: clears any pending timeout when activeUuid changes or the component unmounts.
+        return () => {
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+            }
+        };
     }, [activeUuid]);
 
     // This function handles new output lines from the backend

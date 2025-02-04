@@ -20,16 +20,12 @@
 
 <body class="bg-gray-50">
     <header class="bg-indigo-600 shadow">
-        <div class="container mx-auto px-4 py-6">
-            <h1 class="text-white text-3xl font-bold">Remotisan Control Panel</h1>
+        <div class="container mx-auto px-4 py-2 flex items-end">
+            <h1 class="text-white text-3xl font-bold">Remotisan</h1>
+            <p class="ml-4 text-gray-300">Manage your remote commands with ease.</p>
         </div>
     </header>
-    <main class="container mx-auto px-4 py-10">
-        <section class="text-center mb-10">
-            <h2 class="text-2xl font-semibold text-gray-800">Welcome to Remotisan</h2>
-            <p class="mt-2 text-gray-600">Manage your remote commands with ease.</p>
-        </section>
-
+    <main class="container mx-auto px-4 py-2">
         <section id="react-root">
             <!-- React components from resources/react/components will be rendered here -->
         </section>
