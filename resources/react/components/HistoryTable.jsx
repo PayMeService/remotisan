@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import he from 'he';
+import axios from 'axios';
 
 const csrfToken = document
   .querySelector('meta[name="csrf-token"]')
@@ -20,9 +21,10 @@ const HistoryTable = ({
 
   useEffect(() => {
     fetchHistory(page);
-    fetch(`${baseUrl}/filters`)
-      .then((res) => res.json())
-      .then((data) => {
+    axios
+      .get(`${baseUrl}/filters`)
+      .then((response) => {
+        const data = response.data;
         // Assume that data.users is an array of user names.
         setUsers([
           ...data.users.map((item) => ({ key: item, name: item })),
@@ -38,9 +40,10 @@ const HistoryTable = ({
       user: selectedUser,
       command: searchable,
     });
-    fetch(`${baseUrl}/history?` + params.toString())
-      .then((res) => res.json())
-      .then((data) => {
+    axios
+      .get(`${baseUrl}/history?` + params.toString())
+      .then((response) => {
+        const data = response.data;
         setHistoryRecords(data.data);
         setPagination(data.links);
       })
@@ -53,39 +56,53 @@ const HistoryTable = ({
   };
 
   const handleReRun = (command, params) => {
-    if (window.confirm(`Are you sure to re-run "${command} ${params}"?`)) {
-      fetch(`${baseUrl}/execute`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': csrfToken,
-        },
-        body: JSON.stringify({ command, params }),
-      })
-        .then((response) => response.json())
-        .then((data) => {
-          alert('Command re-run successfully.');
-          setActiveUuid(data.id);
-        })
-        .catch((error) => {
-          alert('Error re-running command');
-          console.error(error);
-        });
+    if (!window.confirm(`Are you sure to re-run "${command} ${params}"?`)) {
+      return;
     }
+
+    axios
+      .post(
+        `${baseUrl}/execute`,
+        { command, params },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken,
+          },
+        }
+      )
+      .then((response) => {
+        const data = response.data;
+        alert('Command re-run successfully.');
+        setActiveUuid(data.id);
+      })
+      .catch((error) => {
+        alert('Error re-running command');
+        console.error(error);
+      });
   };
 
   const handleKill = (job_uuid) => {
     if (window.confirm(`Do you really want to kill job ${job_uuid}?`)) {
-      fetch(`${baseUrl}/kill/${job_uuid}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': csrfToken,
-        },
-      })
-        .then((res) => res.json())
-        .then(() => alert('Process killed'))
-        .catch(() => alert('Error killing process'));
+      axios
+        .post(`${baseUrl}/kill/${job_uuid}`, null, {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken,
+          },
+        })
+        .then(() => {
+          alert('Process killed');
+        })
+        .catch((error) => {
+          let errorMessage =
+            error.response &&
+            error.response.data &&
+            error.response.data.error_message
+              ? error.response.data.error_message
+              : error.message;
+          alert(`Error killing process: ${errorMessage}`);
+        });
     }
   };
 
@@ -267,7 +284,7 @@ const HistoryTable = ({
             <button
               key={idx}
               disabled={!link.url}
-              onClick={() => setPage(page)} // Note: Adjust page parsing based on link.url if necessary.
+              onClick={() => setPage(page)}
               className={`px-3 py-1 rounded ${
                 link.url
                   ? 'bg-blue-500 text-white hover:bg-blue-600'

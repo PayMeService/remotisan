@@ -3,16 +3,17 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-      "dev": "vite",
-      "build": "vite build",
-      "lint": "eslint resources/react/**/*.{js,jsx}",
-      "lint:fix": "eslint --fix resources/react/**/*.{js,jsx}",
-      "format": "prettier --write resources/react/**/*.{js,jsx}"
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint resources/react/**/*.{js,jsx}",
+    "lint:fix": "eslint --fix resources/react/**/*.{js,jsx}",
+    "format": "prettier --write resources/react/**/*.{js,jsx}"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.0.3",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
+    "axios": "^1.7.9",
     "he": "^1.2.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

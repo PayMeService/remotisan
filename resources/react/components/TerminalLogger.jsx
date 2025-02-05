@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Terminal } from 'xterm';
 import 'xterm/css/xterm.css';
+import axios from 'axios';
 
 const TerminalLogger = ({ activeUuid, baseUrl = '', setHistoryRefresh }) => {
   const terminalRef = useRef(null);
@@ -29,9 +30,10 @@ const TerminalLogger = ({ activeUuid, baseUrl = '', setHistoryRefresh }) => {
 
     // Polling function that fetches logs from the backend.
     const readLog = () => {
-      fetch(`${baseUrl}/execute/${activeUuid}`)
-        .then((response) => response.json())
-        .then((data) => {
+      axios
+        .get(`${baseUrl}/execute/${activeUuid}`)
+        .then((response) => {
+          const data = response.data;
           // Assuming "data.content" is an array of new output strings.
           if (data && Array.isArray(data.content)) {
             write(data.content);
@@ -61,7 +63,7 @@ const TerminalLogger = ({ activeUuid, baseUrl = '', setHistoryRefresh }) => {
         clearTimeout(timeoutId);
       }
     };
-  }, [activeUuid]);
+  }, [activeUuid, baseUrl, setHistoryRefresh]);
 
   // This function handles new output lines from the backend
   const write = (content = []) => {

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import CommandHelp from './CommandHelp';
 
 const csrfToken = document
@@ -15,11 +16,12 @@ const CommandExecution = ({ baseUrl = '', activeUuid, setActiveUuid }) => {
   const [showHelp, setShowHelp] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // fetch commands from API and transform the object to an array.
+  // Fetch commands from API and transform the object to an array.
   useEffect(() => {
-    fetch(`${baseUrl}/commands`)
-      .then((res) => res.json())
-      .then((data) => {
+    axios
+      .get(`${baseUrl}/commands`)
+      .then((response) => {
+        const data = response.data;
         if (data.commands) {
           setCommands(Object.values(data.commands));
         }
@@ -28,14 +30,18 @@ const CommandExecution = ({ baseUrl = '', activeUuid, setActiveUuid }) => {
   }, [baseUrl]);
 
   function createFetchPromise(commandParams) {
-    return fetch(`${baseUrl}/execute`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': csrfToken,
-      },
-      body: JSON.stringify({ command: commandSelected, params: commandParams }),
-    }).then((res) => res.json());
+    return axios
+      .post(
+        `${baseUrl}/execute`,
+        { command: commandSelected, params: commandParams },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken,
+          },
+        }
+      )
+      .then((response) => response.data);
   }
 
   const executeCommand = () => {
@@ -45,7 +51,6 @@ const CommandExecution = ({ baseUrl = '', activeUuid, setActiveUuid }) => {
     if (mode === 'single') {
       commandRequests.push(createFetchPromise(params));
     } else if (mode === 'bulk') {
-      // each non-empty line is a command. Adjust as needed.
       const paramsArray = bulkParams
         .split('\n')
         .map((line) => line.trim())
@@ -56,11 +61,10 @@ const CommandExecution = ({ baseUrl = '', activeUuid, setActiveUuid }) => {
 
     Promise.all(commandRequests)
       .then((results) => {
-        setLoading(false);
-
-        // Dispatch a custom event for last result so that TerminalLogger can process it.
         console.log(results);
-        setActiveUuid(results[results.length - 1].id);
+        let result = results[results.length - 1];
+        setLoading(false);
+        setActiveUuid(result.id);
       })
       .catch((err) => {
         console.error(err);
