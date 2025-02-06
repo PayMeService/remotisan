@@ -196,6 +196,15 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
         } else {
             $this->postCompleted();
         }
+
+        app()->terminating(function () {
+            $this->executionRecord->refresh();
+
+            if ($this->executionRecord->isRunning()) {
+                $this->errorMessage = app()->has('lastException') ? app('lastException')->getMessage() : "Unknown error";
+                $this->postFailed();
+            }
+        });
     }
 
     /**

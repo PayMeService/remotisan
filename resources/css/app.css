@@ -1,0 +1,6 @@
+@import "tailwindcss";
+@source "../views";
+@source "../react";
+@source "../react/components";
+
+/* Custom styles can be added below */
