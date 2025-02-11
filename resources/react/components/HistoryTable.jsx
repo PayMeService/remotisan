@@ -27,8 +27,8 @@ const HistoryTable = ({
         const data = response.data;
         // Assume that data.users is an array of user names.
         setUsers([
-          ...data.users.map((item) => ({ key: item, name: item })),
           { key: 'null', name: 'All' },
+          ...data.users.map((item) => ({ key: item, name: item })),
         ]);
       })
       .catch((err) => console.error(err));
@@ -50,7 +50,8 @@ const HistoryTable = ({
       .catch((err) => console.error(err));
   };
 
-  const handleFilter = () => {
+  const handleFilter = (e) => {
+    e.preventDefault();
     setPage(1);
     fetchHistory(1);
   };
@@ -137,7 +138,10 @@ const HistoryTable = ({
   return (
     <div className="p-4 bg-white rounded shadow">
       <h2 className="text-2xl font-bold mb-4">History</h2>
-      <div className="mb-4 flex flex-wrap items-center gap-4">
+      <form
+        onSubmit={handleFilter}
+        className="mb-4 flex flex-wrap items-center gap-4"
+      >
         <div className="flex items-center gap-2">
           <label
             htmlFor="userSelect"
@@ -175,12 +179,12 @@ const HistoryTable = ({
           />
         </div>
         <button
-          onClick={handleFilter}
-          className="bg-blue-500 text-white font-semibold py-2 px-4 rounded hover:bg-blue-600 transition duration-300"
+          type="submit"
+          className="bg-blue-500 text-white font-semibold py-2 px-4 rounded hover:bg-blue-600 transition duration-300 cursor-pointer"
         >
           Filter
         </button>
-      </div>
+      </form>
 
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
@@ -284,10 +288,10 @@ const HistoryTable = ({
             <button
               key={idx}
               disabled={!link.url}
-              onClick={() => setPage(page)}
+              onClick={() => setPage(idx)}
               className={`px-3 py-1 rounded ${
                 link.url
-                  ? 'bg-blue-500 text-white hover:bg-blue-600'
+                  ? 'bg-blue-500 text-white hover:bg-blue-600 cursor-pointer'
                   : 'bg-gray-300 text-gray-600 cursor-not-allowed'
               }`}
             >

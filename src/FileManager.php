@@ -42,8 +42,10 @@ class FileManager
             throw new RecordNotFoundException();
         }
 
+        $content = File::exists(static::getLogFilePath($executionUuid)) ? rtrim(File::get(static::getLogFilePath($executionUuid))) : '';
+
         return [
-            "content" => explode(PHP_EOL, rtrim(File::get(static::getLogFilePath($executionUuid)))),
+            "content" => explode(PHP_EOL, $content),
             "isEnded" => !$executionRecord->isRunning()
         ];
     }
