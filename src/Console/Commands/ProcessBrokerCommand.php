@@ -135,14 +135,13 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
     /**
      * Building array of command for Process to use.
      *
-     * @return  array
+     * @return array
      */
     protected function buildCommandArray(): array
     {
         return array_merge(
             explode(' ', "php artisan " . $this->executionRecord->command),
-            $this->remotisan->getProcessExecutor()->compileCmdAsEscapedArray($this->executionRecord->parameters),
-//            explode(' ', "|| php artisan remotisan:failed " . $this->executionRecord->job_uuid),
+            $this->remotisan->getProcessExecutor()->compileCmdAsEscapedArray($this->executionRecord->parameters)
         );
     }
 
