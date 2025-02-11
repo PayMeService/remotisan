@@ -135,7 +135,7 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
     /**
      * Building array of command for Process to use.
      *
-     * @return  array
+     * @return array
      */
     protected function buildCommandArray(): array
     {
