@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import CommandExecution from './components/CommandExecution';
 import HistoryTable from './components/HistoryTable';
@@ -6,13 +6,22 @@ import TerminalLogger from './components/TerminalLogger';
 import './../css/app.css';
 
 const App = () => {
-  // You may define your baseUrl or have it injected by Laravel.
   const baseUrl = window.remotisanBaseUrl || '';
-
-  // Instead of managing terminalLines state, we now use an activeUuid to coordinate command execution and logging.
-  // Here we initialize activeUuid; in a more dynamic system, you might update this per command or when needed.
   const [activeUuid, setActiveUuid] = useState(null);
   const [historyRefresh, setHistoryRefresh] = useState(0);
+
+  useEffect(() => {
+    const hash = window.location.hash.substring(1);
+    if (hash) {
+      setActiveUuid(hash);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeUuid) {
+      window.location.hash = activeUuid;
+    }
+  }, [activeUuid]);
 
   return (
     <div style={{ padding: '1rem' }}>
