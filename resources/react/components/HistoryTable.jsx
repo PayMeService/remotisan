@@ -196,7 +196,7 @@ const HistoryTable = ({
               <th className="px-4 py-2 text-left text-xs font-medium text-gray-700">
                 User
               </th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-700">
+              <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 max-w-[500px]">
                 Command
               </th>
               <th className="px-4 py-2 text-left text-xs font-medium text-gray-700">
@@ -224,7 +224,7 @@ const HistoryTable = ({
                   {record.user_identifier}
                 </td>
                 <td
-                  className="px-4 py-2 text-sm text-gray-900"
+                  className="px-4 py-2 text-sm text-gray-900 max-w-[500px] truncate"
                   title={`${record.command} ${record.parameters}`}
                 >
                   <button
