@@ -15,6 +15,7 @@ const CommandExecution = ({ baseUrl = '', activeUuid, setActiveUuid }) => {
   const [mode, setMode] = useState('single'); // 'single' or 'bulk'
   const [showHelp, setShowHelp] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   // Fetch commands from API and transform the object to an array.
   useEffect(() => {
@@ -46,6 +47,7 @@ const CommandExecution = ({ baseUrl = '', activeUuid, setActiveUuid }) => {
 
   const executeCommand = () => {
     setLoading(true);
+    setError('');
     let commandRequests = [];
 
     if (mode === 'single') {
@@ -69,6 +71,7 @@ const CommandExecution = ({ baseUrl = '', activeUuid, setActiveUuid }) => {
       .catch((err) => {
         console.error(err);
         setLoading(false);
+        setError(err.response?.data?.message || err.message || 'An error occurred while executing the command');
       });
   };
 
@@ -164,6 +167,12 @@ const CommandExecution = ({ baseUrl = '', activeUuid, setActiveUuid }) => {
             />
           )}
         </div>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-500 text-white rounded">
+            {error}
+          </div>
+        )}
 
         <button
           type="submit"
