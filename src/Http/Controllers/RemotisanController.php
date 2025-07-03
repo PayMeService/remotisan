@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use PayMe\Remotisan\CommandsRepository;
+use PayMe\Remotisan\Exceptions\ParametersLengthException;
 use PayMe\Remotisan\Exceptions\RemotisanException;
 use PayMe\Remotisan\FileManager;
 use PayMe\Remotisan\Models\Execution;
@@ -156,9 +157,8 @@ class RemotisanController extends Controller {
     private function validateParamsLength($params): void
     {
         $paramsLength = config("remotisan.commands.max_params_chars_length");
-
         if (strlen($params) > $paramsLength) {
-            throw new \UnexpectedValueException("Parameters length exceeded {$paramsLength} chars");
+            throw new ParametersLengthException();
         }
     }
 }
