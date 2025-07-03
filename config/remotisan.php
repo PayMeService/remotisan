@@ -16,5 +16,6 @@ return [
     ],
     "kill_switch_key_prefix"    => "remotisan:killing",
     "allow_process_kill"        => true,
-    "super_users"               => []
+    "super_users"               => [],
+    "error_factory"             => \PayMe\Remotisan\Exceptions\DefaultExceptionFactory::class
 ];

@@ -13,11 +13,13 @@ use PayMe\Remotisan\Exceptions\RemotisanException;
 use PayMe\Remotisan\FileManager;
 use PayMe\Remotisan\Models\Execution;
 use PayMe\Remotisan\Remotisan;
+use PayMe\Remotisan\Contracts\ExceptionFactory;
 
 class RemotisanController extends Controller {
 
     protected Remotisan $rt;
     protected CommandsRepository $commandsRepo;
+    protected ExceptionFactory $exceptionFactory;
 
     /**
      * @param Remotisan          $rt
@@ -27,6 +29,9 @@ class RemotisanController extends Controller {
     {
         $this->rt = $rt;
         $this->commandsRepo = $commandsRepo;
+        
+        $exceptionFactoryClass = config('remotisan.error_factory', \PayMe\Remotisan\Exceptions\DefaultExceptionFactory::class);
+        $this->exceptionFactory = app($exceptionFactoryClass);
     }
 
     /**
@@ -158,7 +163,7 @@ class RemotisanController extends Controller {
         $paramsLength = config("remotisan.commands.max_params_chars_length");
 
         if (strlen($params) > $paramsLength) {
-            throw new \UnexpectedValueException("Parameters length exceeded {$paramsLength} chars");
+            throw $this->exceptionFactory->buildMaxParamsLengthException($paramsLength);
         }
     }
 }
