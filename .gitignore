@@ -13,3 +13,7 @@ node_modules
 .goosehints
 .goose
 .aider*
+
+# Build assets
+dist/
+test.html
