@@ -412,21 +412,29 @@ const CommandExecution = ({ baseUrl = '', activeUuid, setActiveUuid }) => {
             <div style={{ 
               fontWeight: '600',
               color: '#059669',
-              marginBottom: '4px'
+              marginBottom: '8px'
             }}>
-              ✅ Selected Command:
+              ✅ Selected Command: {commandSelected}
             </div>
-            <div style={{
-              fontFamily: 'Monaco, "Cascadia Code", "Roboto Mono", monospace',
-              fontSize: '16px',
-              color: '#047857',
-              background: 'rgba(255, 255, 255, 0.5)',
-              padding: '8px 12px',
-              borderRadius: '4px',
-              border: '1px solid #a7f3d0'
-            }}>
-              php artisan {commandSelected} {params}
-            </div>
+            {(() => {
+              const selectedCommand = commands.find(cmd => cmd.name === commandSelected);
+              if (selectedCommand?.usageManual) {
+                return (
+                  <div style={{
+                    fontFamily: 'Monaco, "Cascadia Code", "Roboto Mono", monospace',
+                    fontSize: '14px',
+                    color: '#065f46',
+                    background: 'rgba(255, 255, 255, 0.7)',
+                    padding: '8px 12px',
+                    borderRadius: '4px',
+                    border: '1px dashed #a7f3d0'
+                  }}>
+                    <strong>Example:</strong> php artisan {selectedCommand.usageManual.replace('Usage: ', '')}
+                  </div>
+                );
+              }
+              return null;
+            })()}
           </div>
         )}
 

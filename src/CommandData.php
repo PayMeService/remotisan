@@ -16,17 +16,20 @@ class CommandData  implements Arrayable, JsonSerializable
     protected InputDefinition $definition;
     protected ?string $help;
     protected ?string $description;
+    protected ?string $usageManual;
 
     public function __construct(
         string $name,
         InputDefinition $definition,
         ?string $help,
-        ?string $description
+        ?string $description,
+        ?string $usageManual = null
     ) {
         $this->name        = $name;
         $this->definition  = $definition;
         $this->help        = $help;
         $this->description = $description;
+        $this->usageManual = $usageManual;
     }
 
     /**
@@ -62,6 +65,14 @@ class CommandData  implements Arrayable, JsonSerializable
     }
 
     /**
+     * @return string|null
+     */
+    public function getUsageManual(): ?string
+    {
+        return $this->usageManual;
+    }
+
+    /**
      * @return array
      */
     public function toArray(): array
@@ -73,7 +84,8 @@ class CommandData  implements Arrayable, JsonSerializable
                 "ops"  => $this->optionsToArray()
             ],
             "help"        => $this->getHelp(),
-            "description" => $this->getDescription()
+            "description" => $this->getDescription(),
+            "usageManual" => $this->getUsageManual()
         ];
     }
 
