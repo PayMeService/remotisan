@@ -41,17 +41,19 @@ const CommandExecution = ({ baseUrl = '', activeUuid, setActiveUuid }) => {
       if (highlightedElement) {
         highlightedElement.scrollIntoView({
           behavior: 'smooth',
-          block: 'nearest'
+          block: 'nearest',
         });
       }
     }
   }, [highlightedIndex]);
 
   // Filter commands based on search input
-  const filteredCommands = commands.filter(cmd => {
+  const filteredCommands = commands.filter((cmd) => {
     const searchTerm = commandSearch.toLowerCase();
-    return cmd.name.toLowerCase().includes(searchTerm) || 
-           cmd.description.toLowerCase().includes(searchTerm);
+    return (
+      cmd.name.toLowerCase().includes(searchTerm) ||
+      cmd.description.toLowerCase().includes(searchTerm)
+    );
   });
 
   // Handle command selection
@@ -69,9 +71,12 @@ const CommandExecution = ({ baseUrl = '', activeUuid, setActiveUuid }) => {
     setCommandSearch(value);
     setShowDropdown(true);
     setHighlightedIndex(-1);
-    
+
     // Clear selection if search doesn't match current selection
-    if (!value || !commandSelected.toLowerCase().includes(value.toLowerCase())) {
+    if (
+      !value ||
+      !commandSelected.toLowerCase().includes(value.toLowerCase())
+    ) {
       setCommandSelected('');
     }
   };
@@ -83,13 +88,13 @@ const CommandExecution = ({ baseUrl = '', activeUuid, setActiveUuid }) => {
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        setHighlightedIndex(prev => 
+        setHighlightedIndex((prev) =>
           prev < filteredCommands.length - 1 ? prev + 1 : 0
         );
         break;
       case 'ArrowUp':
         e.preventDefault();
-        setHighlightedIndex(prev => 
+        setHighlightedIndex((prev) =>
           prev > 0 ? prev - 1 : filteredCommands.length - 1
         );
         break;
@@ -147,30 +152,38 @@ const CommandExecution = ({ baseUrl = '', activeUuid, setActiveUuid }) => {
       .catch((err) => {
         console.error(err);
         setLoading(false);
-        setError(err.response?.data?.message || err.message || 'An error occurred while executing the command');
+        setError(
+          err.response?.data?.message ||
+            err.message ||
+            'An error occurred while executing the command'
+        );
       });
   };
 
   return (
-    <div style={{ 
-      padding: '30px', 
-      background: 'white', 
-      borderRadius: '12px', 
-      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-      border: '1px solid #e5e7eb'
-    }}>
-      <h2 style={{ 
-        fontSize: '28px', 
-        fontWeight: '700', 
-        marginBottom: '20px',
-        color: '#1f2937',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px'
-      }}>
+    <div
+      style={{
+        padding: '30px',
+        background: 'white',
+        borderRadius: '12px',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+        border: '1px solid #e5e7eb',
+      }}
+    >
+      <h2
+        style={{
+          fontSize: '28px',
+          fontWeight: '700',
+          marginBottom: '20px',
+          color: '#1f2937',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+        }}
+      >
         ⚡ Execute Command
       </h2>
-      
+
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -178,18 +191,23 @@ const CommandExecution = ({ baseUrl = '', activeUuid, setActiveUuid }) => {
         }}
       >
         <div style={{ marginBottom: '24px' }}>
-          <label htmlFor="command" style={{ 
-            display: 'block', 
-            fontWeight: '600', 
-            marginBottom: '8px',
-            color: '#374151',
-            fontSize: '16px'
-          }}>
+          <label
+            htmlFor="command"
+            style={{
+              display: 'block',
+              fontWeight: '600',
+              marginBottom: '8px',
+              color: '#374151',
+              fontSize: '16px',
+            }}
+          >
             🔍 Search & Select Command
           </label>
-          
+
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ position: 'relative', width: '100%', maxWidth: '600px' }}>
+            <div
+              style={{ position: 'relative', width: '100%', maxWidth: '600px' }}
+            >
               <input
                 type="text"
                 id="command"
@@ -208,13 +226,13 @@ const CommandExecution = ({ baseUrl = '', activeUuid, setActiveUuid }) => {
                   fontSize: '16px',
                   outline: 'none',
                   transition: 'all 0.2s',
-                  background: '#fafafa'
+                  background: '#fafafa',
                 }}
                 autoComplete="off"
               />
-              
+
               {showDropdown && filteredCommands.length > 0 && (
-                <div 
+                <div
                   ref={dropdownRef}
                   style={{
                     position: 'absolute',
@@ -224,9 +242,10 @@ const CommandExecution = ({ baseUrl = '', activeUuid, setActiveUuid }) => {
                     background: 'white',
                     border: '2px solid #e5e7eb',
                     borderRadius: '8px',
-                    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                    boxShadow:
+                      '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
                     maxHeight: '300px',
-                    overflowY: 'auto'
+                    overflowY: 'auto',
                   }}
                 >
                   {filteredCommands.map((cmd, idx) => (
@@ -235,62 +254,78 @@ const CommandExecution = ({ baseUrl = '', activeUuid, setActiveUuid }) => {
                       style={{
                         padding: '12px 16px',
                         cursor: 'pointer',
-                        borderBottom: idx < filteredCommands.length - 1 ? '1px solid #f3f4f6' : 'none',
-                        background: idx === highlightedIndex ? '#dbeafe' : 'white',
-                        transition: 'background-color 0.1s'
+                        borderBottom:
+                          idx < filteredCommands.length - 1
+                            ? '1px solid #f3f4f6'
+                            : 'none',
+                        background:
+                          idx === highlightedIndex ? '#dbeafe' : 'white',
+                        transition: 'background-color 0.1s',
                       }}
                       onClick={() => handleCommandSelect(cmd)}
                       onMouseEnter={() => setHighlightedIndex(idx)}
                     >
-                      <div style={{ 
-                        fontWeight: '600', 
-                        color: '#1f2937',
-                        marginBottom: '4px'
-                      }}>
+                      <div
+                        style={{
+                          fontWeight: '600',
+                          color: '#1f2937',
+                          marginBottom: '4px',
+                        }}
+                      >
                         {cmd.name}
                       </div>
-                      <div style={{ 
-                        fontSize: '14px', 
-                        color: '#6b7280' 
-                      }}>
+                      <div
+                        style={{
+                          fontSize: '14px',
+                          color: '#6b7280',
+                        }}
+                      >
                         {cmd.description}
                       </div>
                     </div>
                   ))}
                 </div>
               )}
-              
-              {showDropdown && commandSearch && filteredCommands.length === 0 && (
-                <div style={{
-                  position: 'absolute',
-                  zIndex: 50,
-                  width: '100%',
-                  marginTop: '4px',
-                  background: 'white',
-                  border: '2px solid #e5e7eb',
-                  borderRadius: '8px',
-                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
-                }}>
-                  <div style={{ 
-                    padding: '16px', 
-                    color: '#6b7280',
-                    textAlign: 'center',
-                    fontStyle: 'italic'
-                  }}>
-                    ❌ No commands found for "{commandSearch}"
+
+              {showDropdown &&
+                commandSearch &&
+                filteredCommands.length === 0 && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      zIndex: 50,
+                      width: '100%',
+                      marginTop: '4px',
+                      background: 'white',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '8px',
+                      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        padding: '16px',
+                        color: '#6b7280',
+                        textAlign: 'center',
+                        fontStyle: 'italic',
+                      }}
+                    >
+                      ❌ No commands found for "{commandSearch}"
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
             </div>
-            
-            <label style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '8px',
-              fontSize: '14px',
-              color: '#374151',
-              whiteSpace: 'nowrap'
-            }}>
+
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '14px',
+                color: '#374151',
+                whiteSpace: 'nowrap',
+              }}
+            >
               <input
                 type="checkbox"
                 checked={showHelp}
@@ -303,20 +338,24 @@ const CommandExecution = ({ baseUrl = '', activeUuid, setActiveUuid }) => {
         </div>
 
         {showHelp && commandSelected && (
-          <div style={{ 
-            marginBottom: '24px',
-            padding: '20px',
-            background: '#f8fafc',
-            border: '1px solid #e2e8f0',
-            borderRadius: '8px'
-          }}>
-            <h3 style={{ 
-              color: '#1e40af',
-              marginTop: '0',
-              marginBottom: '12px',
-              fontSize: '18px',
-              fontWeight: '600'
-            }}>
+          <div
+            style={{
+              marginBottom: '24px',
+              padding: '20px',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '8px',
+            }}
+          >
+            <h3
+              style={{
+                color: '#1e40af',
+                marginTop: '0',
+                marginBottom: '12px',
+                fontSize: '18px',
+                fontWeight: '600',
+              }}
+            >
               📚 Command Help: {commandSelected}
             </h3>
             <CommandHelp
@@ -327,7 +366,9 @@ const CommandExecution = ({ baseUrl = '', activeUuid, setActiveUuid }) => {
 
         <div style={{ marginBottom: '24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <label
+              style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
               <input
                 type="radio"
                 name="mode"
@@ -336,9 +377,13 @@ const CommandExecution = ({ baseUrl = '', activeUuid, setActiveUuid }) => {
                 onChange={() => setMode('single')}
                 style={{ width: '16px', height: '16px' }}
               />
-              <span style={{ fontSize: '16px', fontWeight: '500' }}>Single Command</span>
+              <span style={{ fontSize: '16px', fontWeight: '500' }}>
+                Single Command
+              </span>
             </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <label
+              style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
               <input
                 type="radio"
                 name="mode"
@@ -347,20 +392,26 @@ const CommandExecution = ({ baseUrl = '', activeUuid, setActiveUuid }) => {
                 onChange={() => setMode('bulk')}
                 style={{ width: '16px', height: '16px' }}
               />
-              <span style={{ fontSize: '16px', fontWeight: '500' }}>Bulk Commands</span>
+              <span style={{ fontSize: '16px', fontWeight: '500' }}>
+                Bulk Commands
+              </span>
             </label>
           </div>
         </div>
 
         <div style={{ marginBottom: '24px' }}>
-          <label style={{
-            display: 'block',
-            fontWeight: '600',
-            marginBottom: '8px',
-            color: '#374151',
-            fontSize: '16px'
-          }}>
-            {mode === 'single' ? '📝 Parameters (optional)' : '📝 Bulk Commands (one per line)'}
+          <label
+            style={{
+              display: 'block',
+              fontWeight: '600',
+              marginBottom: '8px',
+              color: '#374151',
+              fontSize: '16px',
+            }}
+          >
+            {mode === 'single'
+              ? '📝 Parameters (optional)'
+              : '📝 Bulk Commands (one per line)'}
           </label>
           {mode === 'single' ? (
             <textarea
@@ -377,7 +428,7 @@ const CommandExecution = ({ baseUrl = '', activeUuid, setActiveUuid }) => {
                 outline: 'none',
                 resize: 'vertical',
                 fontSize: '14px',
-                background: '#fafafa'
+                background: '#fafafa',
               }}
             />
           ) : (
@@ -395,41 +446,51 @@ const CommandExecution = ({ baseUrl = '', activeUuid, setActiveUuid }) => {
                 outline: 'none',
                 resize: 'vertical',
                 fontSize: '14px',
-                background: '#fafafa'
+                background: '#fafafa',
               }}
             />
           )}
         </div>
 
         {commandSelected && (
-          <div style={{ 
-            marginBottom: '24px', 
-            padding: '16px', 
-            background: 'linear-gradient(90deg, #ecfdf5 0%, #f0fdf4 100%)', 
-            borderRadius: '8px',
-            border: '1px solid #a7f3d0'
-          }}>
-            <div style={{ 
-              fontWeight: '600',
-              color: '#059669',
-              marginBottom: '8px'
-            }}>
+          <div
+            style={{
+              marginBottom: '24px',
+              padding: '16px',
+              background: 'linear-gradient(90deg, #ecfdf5 0%, #f0fdf4 100%)',
+              borderRadius: '8px',
+              border: '1px solid #a7f3d0',
+            }}
+          >
+            <div
+              style={{
+                fontWeight: '600',
+                color: '#059669',
+                marginBottom: '8px',
+              }}
+            >
               ✅ Selected Command: {commandSelected}
             </div>
             {(() => {
-              const selectedCommand = commands.find(cmd => cmd.name === commandSelected);
+              const selectedCommand = commands.find(
+                (cmd) => cmd.name === commandSelected
+              );
               if (selectedCommand?.usageManual) {
                 return (
-                  <div style={{
-                    fontFamily: 'Monaco, "Cascadia Code", "Roboto Mono", monospace',
-                    fontSize: '14px',
-                    color: '#065f46',
-                    background: 'rgba(255, 255, 255, 0.7)',
-                    padding: '8px 12px',
-                    borderRadius: '4px',
-                    border: '1px dashed #a7f3d0'
-                  }}>
-                    <strong>Example:</strong> php artisan {selectedCommand.usageManual.replace('Usage: ', '')}
+                  <div
+                    style={{
+                      fontFamily:
+                        'Monaco, "Cascadia Code", "Roboto Mono", monospace',
+                      fontSize: '14px',
+                      color: '#065f46',
+                      background: 'rgba(255, 255, 255, 0.7)',
+                      padding: '8px 12px',
+                      borderRadius: '4px',
+                      border: '1px dashed #a7f3d0',
+                    }}
+                  >
+                    <strong>Example:</strong> php artisan{' '}
+                    {selectedCommand.usageManual.replace('Usage: ', '')}
                   </div>
                 );
               }
@@ -439,14 +500,16 @@ const CommandExecution = ({ baseUrl = '', activeUuid, setActiveUuid }) => {
         )}
 
         {error && (
-          <div style={{ 
-            marginBottom: '24px',
-            padding: '16px',
-            background: 'linear-gradient(90deg, #fef2f2 0%, #fee2e2 100%)',
-            border: '1px solid #fca5a5',
-            borderRadius: '8px',
-            color: '#dc2626'
-          }}>
+          <div
+            style={{
+              marginBottom: '24px',
+              padding: '16px',
+              background: 'linear-gradient(90deg, #fef2f2 0%, #fee2e2 100%)',
+              border: '1px solid #fca5a5',
+              borderRadius: '8px',
+              color: '#dc2626',
+            }}
+          >
             ❌ {error}
           </div>
         )}
@@ -455,7 +518,9 @@ const CommandExecution = ({ baseUrl = '', activeUuid, setActiveUuid }) => {
           type="submit"
           disabled={loading}
           style={{
-            background: loading ? '#9ca3af' : 'linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%)',
+            background: loading
+              ? '#9ca3af'
+              : 'linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%)',
             color: 'white',
             fontWeight: '600',
             padding: '12px 24px',
@@ -465,7 +530,7 @@ const CommandExecution = ({ baseUrl = '', activeUuid, setActiveUuid }) => {
             fontSize: '16px',
             transition: 'all 0.2s',
             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-            opacity: loading ? 0.6 : 1
+            opacity: loading ? 0.6 : 1,
           }}
           onMouseOver={(e) => {
             if (!loading) {
