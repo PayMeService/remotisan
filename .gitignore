@@ -13,3 +13,6 @@ node_modules
 .goosehints
 .goose
 .aider*
+
+# Test files
+test.html

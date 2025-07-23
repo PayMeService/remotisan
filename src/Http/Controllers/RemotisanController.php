@@ -118,20 +118,12 @@ class RemotisanController extends Controller {
     {
         $this->rt->requireAuthenticated();
 
-        $shouldScope = config("remotisan.history.should-scope", false); // Get results only for the logged user
-        $command = $request->input("command");
-        $userName = null;
+        $query = Execution::query();
+        
+        $this->applySearchFilters($query, $request);
+        $this->applyUserFilters($query, $request);
 
-        if ($shouldScope) {
-            $userName = $this->rt->getUserIdentifier();
-        } elseif ($request->input("user") != "null") {
-            $userName = $request->input("user");
-        }
-
-        return Execution::query()
-            ->when($userName, fn(Builder $q) => $q->where("user_identifier", $userName))
-            ->when($command, fn(Builder $q) => $q->whereRaw("CONCAT(command, ' ' , parameters) LIKE '%{$command}%'"))
-            ->orderByDesc("executed_at")
+        return $query->orderByDesc("executed_at")
             ->limit(config("remotisan.history.max_records"))
             ->paginate(10);
     }
@@ -148,6 +140,59 @@ class RemotisanController extends Controller {
         $this->rt->requireAuthenticated();
 
         return FileManager::read($uuid);
+    }
+
+    /**
+     * Apply search filters to the query
+     * 
+     * @param Builder $query
+     * @param Request $request
+     * @return void
+     */
+    private function applySearchFilters(Builder $query, Request $request): void
+    {
+        if ($command = $request->input('command')) {
+            $query->whereRaw("CONCAT(command, ' ', parameters) LIKE ?", ["%{$command}%"]);
+        }
+        
+        if ($status = $request->input('status')) {
+            $query->where('process_status', $status);
+        }
+        
+        if ($uuid = $request->input('uuid')) {
+            $query->where('job_uuid', 'LIKE', "%{$uuid}%");
+        }
+        
+        if ($dateFrom = $request->input('date_from')) {
+            $query->where('executed_at', '>=', strtotime($dateFrom));
+        }
+        
+        if ($dateTo = $request->input('date_to')) {
+            $query->where('executed_at', '<=', strtotime($dateTo) + 86400);
+        }
+    }
+
+    /**
+     * Apply user filters to the query
+     * 
+     * @param Builder $query
+     * @param Request $request
+     * @return void
+     */
+    private function applyUserFilters(Builder $query, Request $request): void
+    {
+        $shouldScope = config("remotisan.history.should-scope", false);
+        $userName = null;
+
+        if ($shouldScope) {
+            $userName = $this->rt->getUserIdentifier();
+        } elseif ($request->input("user") && $request->input("user") !== "null") {
+            $userName = $request->input("user");
+        }
+
+        if ($userName) {
+            $query->where("user_identifier", $userName);
+        }
     }
 
     /**
