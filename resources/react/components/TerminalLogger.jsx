@@ -24,7 +24,10 @@ const TerminalLogger = ({ activeUuid, baseUrl = '', setHistoryRefresh }) => {
     if (!activeUuid) return;
     // Reset terminal and local output state when activeUuid changes.
     setLines([]);
-    if (xtermInstance.current) xtermInstance.current.clear();
+    if (xtermInstance.current) {
+      xtermInstance.current.clear();
+      xtermInstance.current.writeln(`\x1b[36mLoading logs for UUID: ${activeUuid}...\x1b[0m`);
+    }
 
     let timeoutId;
 
@@ -50,7 +53,25 @@ const TerminalLogger = ({ activeUuid, baseUrl = '', setHistoryRefresh }) => {
           }
         })
         .catch((error) => {
-          console.error('Error reading log:', error);
+          console.error('Error reading log for UUID:', activeUuid, error);
+          // If the request fails, show an error message in the terminal
+          if (xtermInstance.current) {
+            xtermInstance.current.writeln(`\x1b[31mError loading logs for UUID: ${activeUuid}\x1b[0m`);
+            
+            if (error.response?.status === 404) {
+              xtermInstance.current.writeln(`\x1b[33mUUID not found or logs not available\x1b[0m`);
+            } else if (error.response?.status === 500) {
+              const errorMsg = error.response?.data?.message || '';
+              if (errorMsg.includes('File does not exist')) {
+                xtermInstance.current.writeln(`\x1b[33mLog file not found - command may not have run or logs were deleted\x1b[0m`);
+                xtermInstance.current.writeln(`\x1b[36mTip: Try commands from recent pages (they may have active logs)\x1b[0m`);
+              } else {
+                xtermInstance.current.writeln(`\x1b[31mServer error: ${errorMsg}\x1b[0m`);
+              }
+            } else {
+              xtermInstance.current.writeln(`\x1b[31mHTTP ${error.response?.status || 'Unknown'} error\x1b[0m`);
+            }
+          }
         });
     };
 

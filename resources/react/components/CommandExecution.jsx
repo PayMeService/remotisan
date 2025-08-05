@@ -19,7 +19,78 @@ const CommandExecution = ({ baseUrl = '', activeUuid, setActiveUuid }) => {
   const [commandSearch, setCommandSearch] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [copyButtonState, setCopyButtonState] = useState('default'); // 'default', 'copied'
   const dropdownRef = useRef(null);
+
+  // Utility function to clean command text - removes outer brackets only
+  const cleanCommandText = (text) => {
+    if (!text) return text;
+    // Remove outer brackets: [--option] → --option, but keep inner brackets: --ids [IDS] → --ids [IDS]
+    return text.replace(/\[([^[\]]*(?:\[[^\]]*\][^[\]]*)*)\]/g, '$1');
+  };
+
+  // Utility function to clean example text - removes php artisan prefix and types
+  const cleanExampleText = (text) => {
+    if (!text) return text;
+    
+    let cleaned = text;
+    
+    // Remove "php artisan " prefix
+    cleaned = cleaned.replace(/^php\s+artisan\s+/, '');
+    
+    // Remove type annotations: --ids=[IDS array] → --ids, --partner=[PARTNER] → --partner
+    cleaned = cleaned.replace(/=\[[^\]]+]/g, '');
+    
+    // Remove type placeholders in brackets: --ids [IDS] → --ids, --companies [COMPANIES] → --companies
+    cleaned = cleaned.replace(/\s+\[[A-Z][A-Z_]*]/g, '');
+    
+    // Remove standalone uppercase type placeholders: DISCOUNTERS, IDS, etc.
+    cleaned = cleaned.replace(/\s+[A-Z][A-Z_]*(?=\s|$)/g, '');
+    
+    return cleaned.trim();
+  };
+
+  // Utility function to format commands with arguments first, then options
+  const formatCommandForExample = (commandName) => {
+    const command = commands.find(cmd => cmd.name === commandName);
+    if (!command || !command.definition) {
+      return commandName;
+    }
+
+    let formattedCommand = commandName;
+    let commandArgs = [];
+    let options = [];
+    
+    // Extract arguments
+    if (command.definition.arguments) {
+      Object.entries(command.definition.arguments).forEach(([key, _arg]) => {
+        commandArgs.push(key);
+      });
+    }
+    
+    // Extract options (skip common Laravel options)
+    if (command.definition.options) {
+      Object.entries(command.definition.options).forEach(([key, _option]) => {
+        if (key === 'help' || key === 'quiet' || key === 'verbose' || key === 'version' || key === 'ansi' || key === 'no-ansi' || key === 'no-interaction' || key === 'env') {
+          return; // Skip common Laravel options
+        }
+
+        const optionName = key.length === 1 ? `-${key}` : `--${key}`;
+        options.push(optionName);
+      });
+    }
+    
+    // Combine: commandName arguments --options (arguments first, then options)
+    if (commandArgs.length > 0) {
+      formattedCommand = commandName + ' ' + commandArgs.join(' ');
+    }
+    
+    if (options.length > 0) {
+      formattedCommand += ' ' + options.join(' ');
+    }
+    
+    return formattedCommand;
+  };
 
   // Fetch commands from API and transform the object to an array.
   useEffect(() => {
@@ -475,26 +546,74 @@ const CommandExecution = ({ baseUrl = '', activeUuid, setActiveUuid }) => {
               const selectedCommand = commands.find(
                 (cmd) => cmd.name === commandSelected
               );
+              
+              let exampleText;
               if (selectedCommand?.usageManual) {
-                return (
-                  <div
+                // Remove "Usage: " or "Usage" prefix, then clean
+                let usageText = selectedCommand.usageManual.replace(/^Usage:?\s*/, '');
+                exampleText = cleanExampleText(cleanCommandText(`php artisan ${usageText}`));
+              } else {
+                // Fallback: use formatCommandForExample and clean it too
+                exampleText = cleanExampleText(formatCommandForExample(commandSelected));
+              }
+              
+              return (
+                <div
+                  style={{
+                    fontFamily:
+                      'Monaco, "Cascadia Code", "Roboto Mono", monospace',
+                    fontSize: '14px',
+                    color: '#065f46',
+                    background: 'rgba(255, 255, 255, 0.7)',
+                    padding: '8px 12px',
+                    borderRadius: '4px',
+                    border: '1px dashed #a7f3d0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <span>
+                    <strong>Example:</strong> {exampleText}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      navigator.clipboard.writeText(exampleText);
+                      setCopyButtonState('copied');
+                      setTimeout(() => setCopyButtonState('default'), 700);
+                    }}
                     style={{
-                      fontFamily:
-                        'Monaco, "Cascadia Code", "Roboto Mono", monospace',
-                      fontSize: '14px',
-                      color: '#065f46',
-                      background: 'rgba(255, 255, 255, 0.7)',
-                      padding: '8px 12px',
+                      marginLeft: '8px',
+                      padding: '4px 8px',
+                      fontSize: '12px',
+                      background: copyButtonState === 'copied' ? '#9ca3af' : '#059669',
+                      color: 'white',
+                      border: 'none',
                       borderRadius: '4px',
-                      border: '1px dashed #a7f3d0',
+                      cursor: 'pointer',
+                      flexShrink: 0,
+                      transition: 'background-color 0.2s',
+                    }}
+                    onMouseOver={(e) => {
+                      if (copyButtonState === 'default') {
+                        e.target.style.background = '#047857';
+                      }
+                    }}
+                    onMouseOut={(e) => {
+                      if (copyButtonState === 'default') {
+                        e.target.style.background = '#059669';
+                      } else if (copyButtonState === 'copied') {
+                        e.target.style.background = '#9ca3af';
+                      }
                     }}
                   >
-                    <strong>Example:</strong> php artisan{' '}
-                    {selectedCommand.usageManual.replace('Usage: ', '')}
-                  </div>
-                );
-              }
-              return null;
+                    {copyButtonState === 'copied' ? 'Copied' : 'Copy'}
+                  </button>
+                </div>
+              );
             })()}
           </div>
         )}
