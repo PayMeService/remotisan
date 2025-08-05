@@ -31,6 +31,19 @@ Optionally, you can publish the views using. The views will be published into _*
 php artisan vendor:publish --tag="remotisan-views"
 ```
 
+## Assets Building
+
+After making any changes to React components or frontend assets, rebuild the assets for production:
+
+```bash
+npm run build
+```
+
+This will generate optimized production assets in the `dist/` directory. The build process is required for any modifications to:
+- React components in `resources/react/components/`
+- JavaScript files
+- CSS/styling changes
+
 ## Configuration
 
 - Remotisan allows you to customize default routes prefix, by adjusting **base_url_prefix** setting, do not forget to clear cached routes afterwards. 

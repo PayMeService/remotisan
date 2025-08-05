@@ -8,7 +8,6 @@ const csrfToken = document
 
 const HistoryTable = ({
   baseUrl = '',
-  activeUuid,
   setActiveUuid,
   historyRefresh,
 }) => {
@@ -38,10 +37,20 @@ const HistoryTable = ({
         ]);
       })
       .catch((err) => console.error(err));
-  }, [baseUrl, page, activeUuid, historyRefresh]);
+  }, [baseUrl, page, historyRefresh]);
 
   const fetchHistory = (pageToFetch) => {
     fetchHistoryWithOptions(pageToFetch, searchOptions);
+  };
+
+  const handlePageClick = (link) => {
+    if (!link.url) return;
+    
+    // Extract page number from Laravel pagination URL
+    const url = new URL(link.url);
+    const pageNum = parseInt(url.searchParams.get('page')) || 1;
+    setPage(pageNum);
+    fetchHistory(pageNum);
   };
 
   const fetchHistoryWithOptions = (pageToFetch, options) => {
@@ -68,6 +77,10 @@ const HistoryTable = ({
         const data = response.data;
         setHistoryRecords(data.data);
         setPagination(data.links);
+        // Sync page state with server's current page
+        if (data.current_page) {
+          setPage(data.current_page);
+        }
       })
       .catch((err) => console.error(err));
   };
@@ -392,20 +405,27 @@ const HistoryTable = ({
       </div>
       {pagination.length > 0 && (
         <div className="mt-4 flex justify-center space-x-2">
-          {pagination.map((link, idx) => (
-            <button
-              key={idx}
-              disabled={!link.url}
-              onClick={() => setPage(idx)}
-              className={`px-3 py-1 rounded ${
-                link.url
-                  ? 'bg-blue-500 text-white hover:bg-blue-600 cursor-pointer'
-                  : 'bg-gray-300 text-gray-600 cursor-not-allowed'
-              }`}
-            >
-              {he.decode(link.label)}
-            </button>
-          ))}
+          {pagination.map((link, idx) => {
+            const isActive = link.active;
+            const isDisabled = !link.url;
+            
+            return (
+              <button
+                key={idx}
+                disabled={isDisabled}
+                onClick={() => handlePageClick(link)}
+                className={`px-3 py-1 rounded ${
+                  isActive
+                    ? 'bg-blue-700 text-white font-bold'
+                    : isDisabled
+                    ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                    : 'bg-blue-500 text-white hover:bg-blue-600 cursor-pointer'
+                }`}
+              >
+                {he.decode(link.label)}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
