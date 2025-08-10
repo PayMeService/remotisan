@@ -2,6 +2,7 @@
 
 namespace PayMe\Remotisan\Http\Controllers;
 
+use Exception;
 use Illuminate\Contracts\Filesystem\FileNotFoundException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -14,6 +15,7 @@ use PayMe\Remotisan\Exceptions\RemotisanException;
 use PayMe\Remotisan\FileManager;
 use PayMe\Remotisan\Models\Execution;
 use PayMe\Remotisan\Remotisan;
+use RuntimeException;
 
 class RemotisanController extends Controller {
 
@@ -79,14 +81,20 @@ class RemotisanController extends Controller {
 
         $request->validate(["command" => "required"]);
 
-        $this->validateParamsLength($request->json("params"));
+        try {
+            $this->validateParamsLength($request->json("params"));
+            
+            $command = $request->json("command");
+            $params  = $request->json("params");
 
-        $command = $request->json("command");
-        $params  = $request->json("params");
-
-        return [
-            "id" => $this->rt->execute($command, $params)
-        ];
+            return [
+                "id" => $this->rt->execute($command, $params)
+            ];
+        } catch (ParametersLengthException|RuntimeException $e) {
+            abort(400, $e->getMessage());
+        } catch (Exception $e) {
+            abort(500, 'An unexpected error occurred: ' . $e->getMessage());
+        }
     }
 
     /**

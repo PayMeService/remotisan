@@ -557,6 +557,13 @@ const CommandExecution = ({ baseUrl = '', activeUuid, setActiveUuid }) => {
                 exampleText = cleanExampleText(formatCommandForExample(commandSelected));
               }
               
+              // Extract only options and arguments for copying (remove command name)
+              // Escape special regex characters in command name
+              const escapedCommand = commandSelected.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              // Create regex to match command at start with word boundary
+              const commandRegex = new RegExp(`^${escapedCommand}\\s*`);
+              let copyText = exampleText.replace(commandRegex, '').trim();
+              
               return (
                 <div
                   style={{
@@ -581,7 +588,7 @@ const CommandExecution = ({ baseUrl = '', activeUuid, setActiveUuid }) => {
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      navigator.clipboard.writeText(exampleText);
+                      navigator.clipboard.writeText(copyText);
                       setCopyButtonState('copied');
                       setTimeout(() => setCopyButtonState('default'), 700);
                     }}
