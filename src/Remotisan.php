@@ -8,6 +8,7 @@ use PayMe\Remotisan\Exceptions\RecordNotFoundException;
 use PayMe\Remotisan\Exceptions\RemotisanException;
 use PayMe\Remotisan\Exceptions\UnauthenticatedException;
 use PayMe\Remotisan\Models\Execution;
+use RuntimeException;
 
 class Remotisan
 {
@@ -40,7 +41,7 @@ class Remotisan
     public function execute(string $command, string $params): string
     {
         if (!$commandData = $this->commandsRepo->find($command)) {
-            throw new \RuntimeException("command '{$command}' not allowed");
+            throw new RuntimeException("command '{$command}' not allowed");
         }
 
         $commandData->checkExecute($this->getUserGroup());
