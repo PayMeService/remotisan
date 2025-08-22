@@ -37,7 +37,6 @@ const App = () => {
       />
       <HistoryTable
         baseUrl={baseUrl}
-        activeUuid={activeUuid}
         setActiveUuid={setActiveUuid}
         historyRefresh={historyRefresh}
       />

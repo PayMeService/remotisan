@@ -8,16 +8,21 @@ const csrfToken = document
 
 const HistoryTable = ({
   baseUrl = '',
-  activeUuid,
   setActiveUuid,
   historyRefresh,
 }) => {
   const [historyRecords, setHistoryRecords] = useState([]);
   const [users, setUsers] = useState([]);
-  const [selectedUser, setSelectedUser] = useState('');
-  const [searchable, setSearchable] = useState('');
   const [pagination, setPagination] = useState([]);
   const [page, setPage] = useState(1);
+  const [searchOptions, setSearchOptions] = useState({
+    command: '',
+    user: '',
+    status: '',
+    dateFrom: '',
+    dateTo: '',
+    uuid: '',
+  });
 
   useEffect(() => {
     fetchHistory(page);
@@ -32,20 +37,50 @@ const HistoryTable = ({
         ]);
       })
       .catch((err) => console.error(err));
-  }, [baseUrl, page, activeUuid, historyRefresh]);
+  }, [baseUrl, page, historyRefresh]);
 
   const fetchHistory = (pageToFetch) => {
+    fetchHistoryWithOptions(pageToFetch, searchOptions);
+  };
+
+  const handlePageClick = (link) => {
+    if (!link.url) return;
+    
+    // Extract page number from Laravel pagination URL
+    const url = new URL(link.url);
+    const pageNum = parseInt(url.searchParams.get('page')) || 1;
+    setPage(pageNum);
+    fetchHistory(pageNum);
+  };
+
+  const fetchHistoryWithOptions = (pageToFetch, options) => {
     const params = new URLSearchParams({
       page: pageToFetch,
-      user: selectedUser,
-      command: searchable,
+      user: options.user || 'null',
+      command: options.command,
+      status: options.status,
+      uuid: options.uuid,
+      date_from: options.dateFrom,
+      date_to: options.dateTo,
     });
+
+    // Remove empty parameters to keep URL clean
+    Object.keys(Object.fromEntries(params)).forEach((key) => {
+      if (!params.get(key) || params.get(key) === 'null') {
+        params.delete(key);
+      }
+    });
+
     axios
       .get(`${baseUrl}/history?` + params.toString())
       .then((response) => {
         const data = response.data;
         setHistoryRecords(data.data);
         setPagination(data.links);
+        // Sync page state with server's current page
+        if (data.current_page) {
+          setPage(data.current_page);
+        }
       })
       .catch((err) => console.error(err));
   };
@@ -54,6 +89,22 @@ const HistoryTable = ({
     e.preventDefault();
     setPage(1);
     fetchHistory(1);
+  };
+
+  const handleClearFilters = () => {
+    const clearedOptions = {
+      command: '',
+      user: '',
+      status: '',
+      dateFrom: '',
+      dateTo: '',
+      uuid: '',
+    };
+    setSearchOptions(clearedOptions);
+    setPage(1);
+
+    // Directly fetch with cleared filters instead of using setTimeout
+    fetchHistoryWithOptions(1, clearedOptions);
   };
 
   const handleReRun = (command, params) => {
@@ -138,52 +189,122 @@ const HistoryTable = ({
   return (
     <div className="p-4 bg-white rounded shadow">
       <h2 className="text-2xl font-bold mb-4">History</h2>
-      <form
-        onSubmit={handleFilter}
-        className="mb-4 flex flex-wrap items-center gap-4"
-      >
-        <div className="flex items-center gap-2">
-          <label
-            htmlFor="userSelect"
-            className="text-sm font-medium text-gray-700"
-          >
-            Select User
-          </label>
-          <select
-            id="userSelect"
-            value={selectedUser}
-            onChange={(e) => setSelectedUser(e.target.value)}
-            className="border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-          >
-            {users.map((u) => (
-              <option key={u.key} value={u.key}>
-                {u.name}
-              </option>
-            ))}
-          </select>
+      <form onSubmit={handleFilter} className="mb-4 space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Command
+            </label>
+            <input
+              type="search"
+              value={searchOptions.command}
+              onChange={(e) =>
+                setSearchOptions({ ...searchOptions, command: e.target.value })
+              }
+              className="border border-gray-300 rounded-md py-2 px-3 w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Search commands..."
+              maxLength="100"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              User
+            </label>
+            <select
+              value={searchOptions.user}
+              onChange={(e) =>
+                setSearchOptions({ ...searchOptions, user: e.target.value })
+              }
+              className="border border-gray-300 rounded-md py-2 px-3 w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">All Users</option>
+              {users.map((u) => (
+                <option key={u.key} value={u.key === 'null' ? '' : u.key}>
+                  {u.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Status
+            </label>
+            <select
+              value={searchOptions.status}
+              onChange={(e) =>
+                setSearchOptions({ ...searchOptions, status: e.target.value })
+              }
+              className="border border-gray-300 rounded-md py-2 px-3 w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">All Statuses</option>
+              <option value="1">Running</option>
+              <option value="2">Completed</option>
+              <option value="3">Failed</option>
+              <option value="4">Killed</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              UUID
+            </label>
+            <input
+              type="search"
+              value={searchOptions.uuid}
+              onChange={(e) =>
+                setSearchOptions({ ...searchOptions, uuid: e.target.value })
+              }
+              className="border border-gray-300 rounded-md py-2 px-3 w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Search UUID..."
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              From Date
+            </label>
+            <input
+              type="date"
+              value={searchOptions.dateFrom}
+              onChange={(e) =>
+                setSearchOptions({ ...searchOptions, dateFrom: e.target.value })
+              }
+              className="border border-gray-300 rounded-md py-2 px-3 w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              To Date
+            </label>
+            <input
+              type="date"
+              value={searchOptions.dateTo}
+              onChange={(e) =>
+                setSearchOptions({ ...searchOptions, dateTo: e.target.value })
+              }
+              className="border border-gray-300 rounded-md py-2 px-3 w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <label
-            htmlFor="searchable"
-            className="text-sm font-medium text-gray-700"
+
+        <div className="flex gap-2">
+          <button
+            type="submit"
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition duration-300"
           >
-            Command:
-          </label>
-          <input
-            type="search"
-            id="searchable"
-            value={searchable}
-            onChange={(e) => setSearchable(e.target.value)}
-            maxLength="100"
-            className="border border-gray-300 rounded-md py-1 px-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+            Search
+          </button>
+          <button
+            type="button"
+            onClick={handleClearFilters}
+            className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition duration-300"
+          >
+            Clear
+          </button>
         </div>
-        <button
-          type="submit"
-          className="bg-blue-500 text-white font-semibold py-2 px-4 rounded hover:bg-blue-600 transition duration-300 cursor-pointer"
-        >
-          Filter
-        </button>
       </form>
 
       <div className="overflow-x-auto">
@@ -284,20 +405,27 @@ const HistoryTable = ({
       </div>
       {pagination.length > 0 && (
         <div className="mt-4 flex justify-center space-x-2">
-          {pagination.map((link, idx) => (
-            <button
-              key={idx}
-              disabled={!link.url}
-              onClick={() => setPage(idx)}
-              className={`px-3 py-1 rounded ${
-                link.url
-                  ? 'bg-blue-500 text-white hover:bg-blue-600 cursor-pointer'
-                  : 'bg-gray-300 text-gray-600 cursor-not-allowed'
-              }`}
-            >
-              {he.decode(link.label)}
-            </button>
-          ))}
+          {pagination.map((link, idx) => {
+            const isActive = link.active;
+            const isDisabled = !link.url;
+            
+            return (
+              <button
+                key={idx}
+                disabled={isDisabled}
+                onClick={() => handlePageClick(link)}
+                className={`px-3 py-1 rounded ${
+                  isActive
+                    ? 'bg-blue-700 text-white font-bold'
+                    : isDisabled
+                    ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                    : 'bg-blue-500 text-white hover:bg-blue-600 cursor-pointer'
+                }`}
+              >
+                {he.decode(link.label)}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

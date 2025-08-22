@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import CommandHelp from './CommandHelp';
 
@@ -15,6 +15,82 @@ const CommandExecution = ({ baseUrl = '', activeUuid, setActiveUuid }) => {
   const [mode, setMode] = useState('single'); // 'single' or 'bulk'
   const [showHelp, setShowHelp] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [commandSearch, setCommandSearch] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [copyButtonState, setCopyButtonState] = useState('default'); // 'default', 'copied'
+  const dropdownRef = useRef(null);
+
+  // Utility function to clean command text - removes outer brackets only
+  const cleanCommandText = (text) => {
+    if (!text) return text;
+    // Remove outer brackets: [--option] → --option, but keep inner brackets: --ids [IDS] → --ids [IDS]
+    return text.replace(/\[([^[\]]*(?:\[[^\]]*\][^[\]]*)*)\]/g, '$1');
+  };
+
+  // Utility function to clean example text - removes php artisan prefix and types
+  const cleanExampleText = (text) => {
+    if (!text) return text;
+    
+    let cleaned = text;
+    
+    // Remove "php artisan " prefix
+    cleaned = cleaned.replace(/^php\s+artisan\s+/, '');
+    
+    // Remove type annotations: --ids=[IDS array] → --ids, --partner=[PARTNER] → --partner
+    cleaned = cleaned.replace(/=\[[^\]]+]/g, '');
+    
+    // Remove type placeholders in brackets: --ids [IDS] → --ids, --companies [COMPANIES] → --companies
+    cleaned = cleaned.replace(/\s+\[[A-Z][A-Z_]*]/g, '');
+    
+    // Remove standalone uppercase type placeholders: DISCOUNTERS, IDS, etc.
+    cleaned = cleaned.replace(/\s+[A-Z][A-Z_]*(?=\s|$)/g, '');
+    
+    return cleaned.trim();
+  };
+
+  // Utility function to format commands with arguments first, then options
+  const formatCommandForExample = (commandName) => {
+    const command = commands.find(cmd => cmd.name === commandName);
+    if (!command || !command.definition) {
+      return commandName;
+    }
+
+    let formattedCommand = commandName;
+    let commandArgs = [];
+    let options = [];
+    
+    // Extract arguments
+    if (command.definition.arguments) {
+      Object.entries(command.definition.arguments).forEach(([key, _arg]) => {
+        commandArgs.push(key);
+      });
+    }
+    
+    // Extract options (skip common Laravel options)
+    if (command.definition.options) {
+      Object.entries(command.definition.options).forEach(([key, _option]) => {
+        if (key === 'help' || key === 'quiet' || key === 'verbose' || key === 'version' || key === 'ansi' || key === 'no-ansi' || key === 'no-interaction' || key === 'env') {
+          return; // Skip common Laravel options
+        }
+
+        const optionName = key.length === 1 ? `-${key}` : `--${key}`;
+        options.push(optionName);
+      });
+    }
+    
+    // Combine: commandName arguments --options (arguments first, then options)
+    if (commandArgs.length > 0) {
+      formattedCommand = commandName + ' ' + commandArgs.join(' ');
+    }
+    
+    if (options.length > 0) {
+      formattedCommand += ' ' + options.join(' ');
+    }
+    
+    return formattedCommand;
+  };
 
   // Fetch commands from API and transform the object to an array.
   useEffect(() => {
@@ -28,6 +104,83 @@ const CommandExecution = ({ baseUrl = '', activeUuid, setActiveUuid }) => {
       })
       .catch((err) => console.error(err));
   }, [baseUrl]);
+
+  // Scroll highlighted item into view
+  useEffect(() => {
+    if (highlightedIndex >= 0 && dropdownRef.current) {
+      const highlightedElement = dropdownRef.current.children[highlightedIndex];
+      if (highlightedElement) {
+        highlightedElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+        });
+      }
+    }
+  }, [highlightedIndex]);
+
+  // Filter commands based on search input
+  const filteredCommands = commands.filter((cmd) => {
+    const searchTerm = commandSearch.toLowerCase();
+    return (
+      cmd.name.toLowerCase().includes(searchTerm) ||
+      cmd.description.toLowerCase().includes(searchTerm)
+    );
+  });
+
+  // Handle command selection
+  const handleCommandSelect = (command) => {
+    setCommandSelected(command.name);
+    setCommandSearch(command.name);
+    setShowDropdown(false);
+    setParams('');
+    setHighlightedIndex(-1);
+  };
+
+  // Handle search input changes
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setCommandSearch(value);
+    setShowDropdown(true);
+    setHighlightedIndex(-1);
+
+    // Clear selection if search doesn't match current selection
+    if (
+      !value ||
+      !commandSelected.toLowerCase().includes(value.toLowerCase())
+    ) {
+      setCommandSelected('');
+    }
+  };
+
+  // Handle keyboard navigation
+  const handleKeyDown = (e) => {
+    if (!showDropdown) return;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setHighlightedIndex((prev) =>
+          prev < filteredCommands.length - 1 ? prev + 1 : 0
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setHighlightedIndex((prev) =>
+          prev > 0 ? prev - 1 : filteredCommands.length - 1
+        );
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (highlightedIndex >= 0 && filteredCommands[highlightedIndex]) {
+          handleCommandSelect(filteredCommands[highlightedIndex]);
+        }
+        break;
+      case 'Escape':
+        setShowDropdown(false);
+        setHighlightedIndex(-1);
+        break;
+    }
+  };
 
   function createFetchPromise(commandParams) {
     return axios
@@ -46,6 +199,7 @@ const CommandExecution = ({ baseUrl = '', activeUuid, setActiveUuid }) => {
 
   const executeCommand = () => {
     setLoading(true);
+    setError('');
     let commandRequests = [];
 
     if (mode === 'single') {
@@ -69,120 +223,457 @@ const CommandExecution = ({ baseUrl = '', activeUuid, setActiveUuid }) => {
       .catch((err) => {
         console.error(err);
         setLoading(false);
+        setError(
+          err.response?.data?.message ||
+            err.message ||
+            'An error occurred while executing the command'
+        );
       });
   };
 
   return (
-    <div className="p-6 bg-white rounded shadow">
-      <h2 className="text-2xl font-bold mb-4">Execute</h2>
+    <div
+      style={{
+        padding: '30px',
+        background: 'white',
+        borderRadius: '12px',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+        border: '1px solid #e5e7eb',
+      }}
+    >
+      <h2
+        style={{
+          fontSize: '28px',
+          fontWeight: '700',
+          marginBottom: '20px',
+          color: '#1f2937',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+        }}
+      >
+        ⚡ Execute Command
+      </h2>
+
       <form
         onSubmit={(e) => {
           e.preventDefault();
           executeCommand();
         }}
       >
-        <div className="mb-4">
+        <div style={{ marginBottom: '24px' }}>
           <label
             htmlFor="command"
-            className="block text-gray-700 font-medium mb-1"
+            style={{
+              display: 'block',
+              fontWeight: '600',
+              marginBottom: '8px',
+              color: '#374151',
+              fontSize: '16px',
+            }}
           >
-            Select a command
+            🔍 Search & Select Command
           </label>
-          <div className="flex items-center space-x-4">
-            <select
-              id="command"
-              required
-              value={commandSelected}
-              onChange={(e) => {
-                setCommandSelected(e.target.value);
-                setParams('');
-              }}
-              className="border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2"
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div
+              style={{ position: 'relative', width: '100%', maxWidth: '600px' }}
             >
-              <option value="">Select Command</option>
-              {commands.map((cmd, idx) => (
-                <option key={idx} value={cmd.name}>
-                  {cmd.name} - {cmd.description}
-                </option>
-              ))}
-            </select>
-            <label className="flex items-center space-x-2 text-sm text-gray-700">
+              <input
+                type="text"
+                id="command"
+                required
+                value={commandSearch}
+                onChange={handleSearchChange}
+                onKeyDown={handleKeyDown}
+                onFocus={() => setShowDropdown(true)}
+                onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
+                placeholder="Type to search commands... (try 'make', 'migrate', 'cache')"
+                style={{
+                  width: '100%',
+                  border: '2px solid #d1d5db',
+                  borderRadius: '8px',
+                  padding: '12px 16px',
+                  fontSize: '16px',
+                  outline: 'none',
+                  transition: 'all 0.2s',
+                  background: '#fafafa',
+                }}
+                autoComplete="off"
+              />
+
+              {showDropdown && filteredCommands.length > 0 && (
+                <div
+                  ref={dropdownRef}
+                  style={{
+                    position: 'absolute',
+                    zIndex: 50,
+                    width: '100%',
+                    marginTop: '4px',
+                    background: 'white',
+                    border: '2px solid #e5e7eb',
+                    borderRadius: '8px',
+                    boxShadow:
+                      '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                    maxHeight: '300px',
+                    overflowY: 'auto',
+                  }}
+                >
+                  {filteredCommands.map((cmd, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        padding: '12px 16px',
+                        cursor: 'pointer',
+                        borderBottom:
+                          idx < filteredCommands.length - 1
+                            ? '1px solid #f3f4f6'
+                            : 'none',
+                        background:
+                          idx === highlightedIndex ? '#dbeafe' : 'white',
+                        transition: 'background-color 0.1s',
+                      }}
+                      onClick={() => handleCommandSelect(cmd)}
+                      onMouseEnter={() => setHighlightedIndex(idx)}
+                    >
+                      <div
+                        style={{
+                          fontWeight: '600',
+                          color: '#1f2937',
+                          marginBottom: '4px',
+                        }}
+                      >
+                        {cmd.name}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: '14px',
+                          color: '#6b7280',
+                        }}
+                      >
+                        {cmd.description}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {showDropdown &&
+                commandSearch &&
+                filteredCommands.length === 0 && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      zIndex: 50,
+                      width: '100%',
+                      marginTop: '4px',
+                      background: 'white',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '8px',
+                      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        padding: '16px',
+                        color: '#6b7280',
+                        textAlign: 'center',
+                        fontStyle: 'italic',
+                      }}
+                    >
+                      ❌ No commands found for "{commandSearch}"
+                    </div>
+                  </div>
+                )}
+            </div>
+
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '14px',
+                color: '#374151',
+                whiteSpace: 'nowrap',
+              }}
+            >
               <input
                 type="checkbox"
                 checked={showHelp}
                 onChange={() => setShowHelp(!showHelp)}
-                className="form-checkbox h-4 w-4 text-blue-600"
+                style={{ width: '16px', height: '16px' }}
               />
-              <span>
-                {showHelp ? 'Hide commands help' : 'Show commands help'}
-              </span>
+              {showHelp ? 'Hide commands help' : 'Show commands help'}
             </label>
           </div>
         </div>
 
-        <div className="mb-4">
-          <div className="flex items-center space-x-4">
-            <label className="flex items-center space-x-2">
+        {showHelp && commandSelected && (
+          <div
+            style={{
+              marginBottom: '24px',
+              padding: '20px',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '8px',
+            }}
+          >
+            <h3
+              style={{
+                color: '#1e40af',
+                marginTop: '0',
+                marginBottom: '12px',
+                fontSize: '18px',
+                fontWeight: '600',
+              }}
+            >
+              📚 Command Help: {commandSelected}
+            </h3>
+            <CommandHelp
+              command={commands.find((cmd) => cmd.name === commandSelected)}
+            />
+          </div>
+        )}
+
+        <div style={{ marginBottom: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+            <label
+              style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
               <input
                 type="radio"
                 name="mode"
                 value="single"
                 checked={mode === 'single'}
                 onChange={() => setMode('single')}
-                className="form-radio h-4 w-4 text-blue-600"
+                style={{ width: '16px', height: '16px' }}
               />
-              <span>Single Command</span>
+              <span style={{ fontSize: '16px', fontWeight: '500' }}>
+                Single Command
+              </span>
             </label>
-            <label className="flex items-center space-x-2">
+            <label
+              style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
               <input
                 type="radio"
                 name="mode"
                 value="bulk"
                 checked={mode === 'bulk'}
                 onChange={() => setMode('bulk')}
-                className="form-radio h-4 w-4 text-blue-600"
+                style={{ width: '16px', height: '16px' }}
               />
-              <span>Bulk Commands</span>
+              <span style={{ fontSize: '16px', fontWeight: '500' }}>
+                Bulk Commands
+              </span>
             </label>
           </div>
         </div>
 
-        <div className="mb-4">
+        <div style={{ marginBottom: '24px' }}>
+          <label
+            style={{
+              display: 'block',
+              fontWeight: '600',
+              marginBottom: '8px',
+              color: '#374151',
+              fontSize: '16px',
+            }}
+          >
+            {mode === 'single'
+              ? '📝 Parameters (optional)'
+              : '📝 Bulk Commands (one per line)'}
+          </label>
           {mode === 'single' ? (
             <textarea
-              placeholder="Input options & arguments (if required)..."
+              placeholder="Enter command parameters and options here..."
               value={params}
               onChange={(e) => setParams(e.target.value)}
-              className="w-3/4 border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              style={{
+                width: '100%',
+                maxWidth: '600px',
+                border: '2px solid #d1d5db',
+                borderRadius: '8px',
+                padding: '12px 16px',
+                minHeight: '100px',
+                outline: 'none',
+                resize: 'vertical',
+                fontSize: '14px',
+                background: '#fafafa',
+              }}
             />
           ) : (
             <textarea
-              placeholder="Enter one command per line..."
+              placeholder="Enter one command per line... (e.g., --force, --seed, etc.)"
               value={bulkParams}
               onChange={(e) => setBulkParams(e.target.value)}
-              className="w-3/4 h-48 border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              style={{
+                width: '100%',
+                maxWidth: '600px',
+                border: '2px solid #d1d5db',
+                borderRadius: '8px',
+                padding: '12px 16px',
+                minHeight: '200px',
+                outline: 'none',
+                resize: 'vertical',
+                fontSize: '14px',
+                background: '#fafafa',
+              }}
             />
           )}
         </div>
 
+        {commandSelected && (
+          <div
+            style={{
+              marginBottom: '24px',
+              padding: '16px',
+              background: 'linear-gradient(90deg, #ecfdf5 0%, #f0fdf4 100%)',
+              borderRadius: '8px',
+              border: '1px solid #a7f3d0',
+            }}
+          >
+            <div
+              style={{
+                fontWeight: '600',
+                color: '#059669',
+                marginBottom: '8px',
+              }}
+            >
+              ✅ Selected Command: {commandSelected}
+            </div>
+            {(() => {
+              const selectedCommand = commands.find(
+                (cmd) => cmd.name === commandSelected
+              );
+              
+              let exampleText;
+              if (selectedCommand?.usageManual) {
+                // Remove "Usage: " or "Usage" prefix, then clean
+                let usageText = selectedCommand.usageManual.replace(/^Usage:?\s*/, '');
+                exampleText = cleanExampleText(cleanCommandText(`php artisan ${usageText}`));
+              } else {
+                // Fallback: use formatCommandForExample and clean it too
+                exampleText = cleanExampleText(formatCommandForExample(commandSelected));
+              }
+              
+              // Extract only options and arguments for copying (remove command name)
+              // Escape special regex characters in command name
+              const escapedCommand = commandSelected.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              // Create regex to match command at start with word boundary
+              const commandRegex = new RegExp(`^${escapedCommand}\\s*`);
+              let copyText = exampleText.replace(commandRegex, '').trim();
+              
+              return (
+                <div
+                  style={{
+                    fontFamily:
+                      'Monaco, "Cascadia Code", "Roboto Mono", monospace',
+                    fontSize: '14px',
+                    color: '#065f46',
+                    background: 'rgba(255, 255, 255, 0.7)',
+                    padding: '8px 12px',
+                    borderRadius: '4px',
+                    border: '1px dashed #a7f3d0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <span>
+                    <strong>Example:</strong> {exampleText}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      navigator.clipboard.writeText(copyText);
+                      setCopyButtonState('copied');
+                      setTimeout(() => setCopyButtonState('default'), 700);
+                    }}
+                    style={{
+                      marginLeft: '8px',
+                      padding: '4px 8px',
+                      fontSize: '12px',
+                      background: copyButtonState === 'copied' ? '#9ca3af' : '#059669',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      flexShrink: 0,
+                      transition: 'background-color 0.2s',
+                    }}
+                    onMouseOver={(e) => {
+                      if (copyButtonState === 'default') {
+                        e.target.style.background = '#047857';
+                      }
+                    }}
+                    onMouseOut={(e) => {
+                      if (copyButtonState === 'default') {
+                        e.target.style.background = '#059669';
+                      } else if (copyButtonState === 'copied') {
+                        e.target.style.background = '#9ca3af';
+                      }
+                    }}
+                  >
+                    {copyButtonState === 'copied' ? 'Copied' : 'Copy'}
+                  </button>
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
+        {error && (
+          <div
+            style={{
+              marginBottom: '24px',
+              padding: '16px',
+              background: 'linear-gradient(90deg, #fef2f2 0%, #fee2e2 100%)',
+              border: '1px solid #fca5a5',
+              borderRadius: '8px',
+              color: '#dc2626',
+            }}
+          >
+            ❌ {error}
+          </div>
+        )}
+
         <button
           type="submit"
           disabled={loading}
-          className={`bg-blue-500 text-white font-semibold py-2 px-4 rounded transition duration-300 ${
-            loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-600'
-          }`}
+          style={{
+            background: loading
+              ? '#9ca3af'
+              : 'linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%)',
+            color: 'white',
+            fontWeight: '600',
+            padding: '12px 24px',
+            borderRadius: '8px',
+            border: 'none',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            fontSize: '16px',
+            transition: 'all 0.2s',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+            opacity: loading ? 0.6 : 1,
+          }}
+          onMouseOver={(e) => {
+            if (!loading) {
+              e.target.style.transform = 'translateY(-1px)';
+              e.target.style.boxShadow = '0 6px 8px -1px rgba(0, 0, 0, 0.15)';
+            }
+          }}
+          onMouseOut={(e) => {
+            if (!loading) {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+            }
+          }}
         >
-          Execute
+          {loading ? '⏳ Executing...' : '🚀 Execute Command'}
         </button>
       </form>
-
-      {showHelp && commandSelected && (
-        <div className="mt-4">
-          <CommandHelp
-            command={commands.find((cmd) => cmd.name === commandSelected)}
-          />
-        </div>
-      )}
     </div>
   );
 };
