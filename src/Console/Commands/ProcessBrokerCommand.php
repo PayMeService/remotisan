@@ -217,13 +217,16 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
 
     /**
      * @param   int     $signal
+     * @param   int|false $previousExitCode
      *
-     * @return  void
+     * @return  int|false
      */
-    public function handleSignal(int $signal): void
+    public function handleSignal(int $signal, int|false $previousExitCode = 0): int|false
     {
         $this->isKilled = true;
         $this->process->signal($signal);
         $this->postKill();
+        
+        return false;
     }
 }
