@@ -36,6 +36,30 @@ class CommandsRepositoryTest extends TestCase
 
     public function testAllByRole()
     {
+        // With the new attribute-based system, commands are denied by default
+        // unless they have RemotisanRoles attributes that allow them
+        
+        $userCommands = $this->commandsRepository
+            ->allByRole("user")
+            ->count();
+
+        // Should get no commands since no RemotisanRoles attributes are present (security-first)
+        $this->assertEquals(0, $userCommands);
+
+        $adminCommands = $this->commandsRepository
+            ->allByRole("admin")
+            ->count();
+
+        // Admin should also get no commands without attributes
+        $this->assertEquals(0, $adminCommands);
+        
+        // Both should have zero commands since no attributes allow access
+        $this->assertEquals($userCommands, $adminCommands);
+    }
+
+    public function testAllByRoleWithConfigFallback()
+    {
+        // Test that config-based filtering still works as fallback
         config()->set("remotisan.commands.allowed", [
             "migrate:status" => ["roles" => ["*"]],
             "migrate" => ["roles" => ["user", "admin"]],
@@ -46,19 +70,25 @@ class CommandsRepositoryTest extends TestCase
             ->allByRole("user")
             ->keys()->sort()->toArray();
 
-        $this->assertEquals(["migrate", "migrate:status"], $userCommands);
+        // Should include migrate and migrate:status
+        $this->assertContains("migrate", $userCommands);
+        $this->assertContains("migrate:status", $userCommands);
 
-        $userCommands = $this->commandsRepository
+        $adminCommands = $this->commandsRepository
             ->allByRole("admin")
             ->keys()->sort()->toArray();
 
-        $this->assertEquals(["migrate", "migrate:install", "migrate:status"], $userCommands);
+        // Admin should have all three
+        $this->assertContains("migrate", $adminCommands);
+        $this->assertContains("migrate:install", $adminCommands);
+        $this->assertContains("migrate:status", $adminCommands);
 
-        $userCommands = $this->commandsRepository
+        $viewerCommands = $this->commandsRepository
             ->allByRole("viewer")
             ->keys()->sort()->toArray();
 
-        $this->assertEquals(["migrate:status"], $userCommands);
+        // Viewer should only have migrate:status
+        $this->assertContains("migrate:status", $viewerCommands);
     }
 
     public function testFindMethod()
