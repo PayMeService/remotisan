@@ -95,9 +95,57 @@ For **Laravel base commands** (migrate, cache:clear, etc.), use the traditional 
 ### Security-First Approach
 
 - **Commands with attributes**: Only specified roles can execute
-- **Commands with config**: Only configured roles can execute  
+- **Commands with config**: Only configured roles can execute
 - **Commands without either**: **DENIED by default** (secure by default)
 - **Both approaches**: Can be used simultaneously - results are merged
+
+### Commands Cache (Performance Optimization)
+
+For improved performance in production, Remotisan supports loading commands from a cache file. This avoids expensive reflection operations and ensures all commands from your project and packages are available.
+
+**Cache File Location**: `bootstrap/cache/commands.php`
+
+**Cache File Format**:
+```php
+<?php
+return [
+    [
+        'class' => 'App\\Console\\Commands\\MyCustomCommand',
+        'roles' => ['admin', 'user']
+    ],
+    [
+        'class' => 'Illuminate\\Database\\Console\\Migrations\\MigrateCommand',
+        'roles' => ['*']
+    ],
+    // ... additional commands
+];
+```
+
+**Each cache entry must include**:
+- `class` (required): Fully qualified class name of the command
+- `roles` (optional): Array of roles allowed to execute this command (defaults to `[]` if not provided)
+
+**Cache Behavior**:
+- If cache file exists and is valid: Commands loaded from cache with pre-resolved roles (faster)
+- If cache file is missing or invalid: Automatically falls back to `Artisan::all()` (safe)
+- Invalid entries in cache are skipped silently without breaking the application
+
+**Generating the Cache**:
+The cache generation command should be implemented in your main Laravel application to scan all registered commands and generate the cache file during deployment.
+
+**When to Regenerate**:
+- After `composer update` (when packages change)
+- After adding/removing custom commands
+- As part of your deployment process (recommended)
+- After modifying command permissions via attributes or config
+
+**Production Deployment**:
+```bash
+php artisan your:cache-commands-command  # Generate commands cache
+php artisan config:cache                 # Cache configuration
+php artisan route:cache                  # Cache routes
+php artisan view:cache                   # Cache views
+```
 
 ### Custom Routes Prefix
 

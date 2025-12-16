@@ -1,4 +1,5 @@
 <?php
+
 namespace PayMe\Remotisan;
 
 use Illuminate\Contracts\Support\Arrayable;
@@ -13,16 +14,18 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputDefinition;
 use Symfony\Component\Console\Input\InputOption;
 
-class CommandData  implements Arrayable, JsonSerializable
+class CommandData implements Arrayable, JsonSerializable
 {
     protected Command $command;
+    protected ?array $cachedRoles = null;
 
-    public function __construct(Command $command)
+    public function __construct(Command $command, ?array $cachedRoles = null)
     {
         $this->command = $command;
+        $this->cachedRoles = $cachedRoles;
     }
 
-    /**
+    /**v
      * @return string
      */
     public function getName(): string
@@ -145,9 +148,9 @@ class CommandData  implements Arrayable, JsonSerializable
         return collect($this->getDefinition()->getArguments())
             ->map(fn(InputArgument $arg) => [
                 "description" => $arg->getDescription(),
-                "default" => $arg->getDefault(),
+                "default"     => $arg->getDefault(),
                 "is_required" => $arg->isRequired(),
-                "is_array" => $arg->isArray(),
+                "is_array"    => $arg->isArray(),
             ]);
     }
 
@@ -158,52 +161,58 @@ class CommandData  implements Arrayable, JsonSerializable
     {
         return collect($this->getDefinition()->getOptions())
             ->map(fn(InputOption $arg) => [
-                "description" => $arg->getDescription(),
+                "description"  => $arg->getDescription(),
                 "accept_Value" => $arg->acceptValue(),
-                "default" => $arg->getDefault(),
-                "is_required" => $arg->isValueRequired(),
-                "is_array" => $arg->isArray(),
+                "default"      => $arg->getDefault(),
+                "is_required"  => $arg->isValueRequired(),
+                "is_array"     => $arg->isArray(),
             ]);
     }
 
     /**
      * Check if user can execute based on role
-     * 
+     *
      * @param string $role Role string (can be permission constant as string or role name)
      * @return bool
      */
     public function canExecute(string $role): bool
     {
         try {
+            // Use cached roles if available (from cache file)
+            if ($this->cachedRoles !== null) {
+                return in_array("*", $this->cachedRoles) || in_array($role, $this->cachedRoles);
+            }
+
+            // Otherwise use reflection (fallback for uncached commands)
             $reflection = new ReflectionClass($this->command);
             $attributes = $reflection->getAttributes(RemotisanRoles::class);
-            
+
             if (!empty($attributes)) {
                 $remotisanRoles = $attributes[0]->newInstance();
+
                 return $remotisanRoles->hasRole($role);
             }
-            
+
             // If command has no attributes, check config as fallback
             $roles = Arr::wrap(config("remotisan.commands.allowed.{$this->getName()}.roles", []));
             if (!empty($roles)) {
                 return in_array("*", $roles) || in_array($role, $roles);
             }
-            
+
             // If command exists but has no attributes and no config, deny access by default
             return false;
         } catch (\Exception $e) {
             // If reflection fails, fall back to config
             $roles = Arr::wrap(config("remotisan.commands.allowed.{$this->getName()}.roles", []));
-            
+
             // If no config is found, deny access by default (security-first)
             if (empty($roles)) {
                 return false;
             }
-            
+
             return in_array("*", $roles) || in_array($role, $roles);
         }
     }
-
 
     /**
      * @param string $role
