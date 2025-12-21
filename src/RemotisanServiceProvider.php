@@ -5,6 +5,7 @@ namespace PayMe\Remotisan;
 use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Support\ServiceProvider;
+use PayMe\Remotisan\Console\Commands\CacheCommandsCommand;
 use PayMe\Remotisan\Console\Commands\ProcessBrokerCommand;
 use Throwable;
 
@@ -33,7 +34,10 @@ class RemotisanServiceProvider extends ServiceProvider
 
         $this->ensureSignalsConstants();
 
-        $this->commands([ProcessBrokerCommand::class]);
+        $this->commands([
+            ProcessBrokerCommand::class,
+            CacheCommandsCommand::class,
+        ]);
 
         $this->logLastException();
     }

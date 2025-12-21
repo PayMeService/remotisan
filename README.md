@@ -131,7 +131,18 @@ return [
 - Invalid entries in cache are skipped silently without breaking the application
 
 **Generating the Cache**:
-The cache generation command should be implemented in your main Laravel application to scan all registered commands and generate the cache file during deployment.
+Use the included `remotisan:cache` command to generate the commands cache:
+
+```bash
+php artisan remotisan:cache
+```
+
+This command will:
+- Scan all registered Artisan commands in your application
+- Extract commands with `RemotisanRoles` attributes or config-based permissions
+- Generate the cache file at `bootstrap/cache/commands.php`
+- Only cache commands that have explicit role permissions (security-first approach)
+- Include commands from app, packages, and vendor
 
 **When to Regenerate**:
 - After `composer update` (when packages change)
@@ -141,10 +152,10 @@ The cache generation command should be implemented in your main Laravel applicat
 
 **Production Deployment**:
 ```bash
-php artisan your:cache-commands-command  # Generate commands cache
-php artisan config:cache                 # Cache configuration
-php artisan route:cache                  # Cache routes
-php artisan view:cache                   # Cache views
+php artisan remotisan:cache   # Generate commands cache
+php artisan config:cache      # Cache configuration
+php artisan route:cache       # Cache routes
+php artisan view:cache        # Cache views
 ```
 
 ### Custom Routes Prefix
