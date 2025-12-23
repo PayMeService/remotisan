@@ -13,7 +13,7 @@ In general, the package could very well assist transitioning your project to CI/
 
 ## Installation
 
-Use composer to install *Remotisan* to your Laravel project. php7.4+ is required.
+Use composer to install *Remotisan* to your Laravel project. **PHP 8.0+ is required**.
 
 ```bash
 composer require paymeservice/remotisan
@@ -46,14 +46,41 @@ This will generate optimized production assets in the `dist/` directory. The bui
 
 ## Configuration
 
-- Remotisan allows you to customize default routes prefix, by adjusting **base_url_prefix** setting, do not forget to clear cached routes afterwards. 
+Remotisan supports **two approaches** for command permissions:
 
-- Add any command you wish to be exposed to *Remotisan* in config, by adjusting the following part.
+### 1. Attribute-Based Permissions (Recommended)
 
-Note: UserRoles class is NOT provided, for demonstration purpose only!
+For your **custom commands**, use PHP 8.0+ attributes directly in your command classes:
 
-Use your own model for Access control layer (ACL).
 ```php
+use PayMe\Remotisan\Attributes\RemotisanRoles;
+
+#[RemotisanRoles(['admin', 'user'])]
+class MyCustomCommand extends Command
+{
+    protected $signature = 'my:command';
+    
+    public function handle()
+    {
+        // Your command logic
+    }
+}
+```
+
+**Available permission patterns:**
+```php
+#[RemotisanRoles(['*'])]              // All roles can execute
+#[RemotisanRoles(['admin'])]          // Admin role only
+#[RemotisanRoles(['8'])]              // Permission constant as string
+#[RemotisanRoles(['admin', 'user'])]  // Multiple specific roles
+```
+
+### 2. Config-Based Permissions
+
+For **Laravel base commands** (migrate, cache:clear, etc.), use the traditional config approach:
+
+```php
+// config/remotisan.php
 [
     "commands" =>   [
         "allowed" => [ // command level ACL.
@@ -65,7 +92,75 @@ Use your own model for Access control layer (ACL).
 ]
 ```
 
-Use roles to define who is allowed to execute the command.
+### Security-First Approach
+
+- **Commands with attributes**: Only specified roles can execute
+- **Commands with config**: Only configured roles can execute
+- **Commands without either**: **DENIED by default** (secure by default)
+- **Both approaches**: Can be used simultaneously - results are merged
+
+### Commands Cache (Performance Optimization)
+
+For improved performance in production, Remotisan supports loading commands from a cache file. This avoids expensive reflection operations and ensures all commands from your project and packages are available.
+
+**Cache File Location**: `bootstrap/cache/commands.php`
+
+**Cache File Format**:
+```php
+<?php
+return [
+    [
+        'class' => 'App\\Console\\Commands\\MyCustomCommand',
+        'roles' => ['admin', 'user']
+    ],
+    [
+        'class' => 'Illuminate\\Database\\Console\\Migrations\\MigrateCommand',
+        'roles' => ['*']
+    ],
+    // ... additional commands
+];
+```
+
+**Each cache entry must include**:
+- `class` (required): Fully qualified class name of the command
+- `roles` (optional): Array of roles allowed to execute this command (defaults to `[]` if not provided)
+
+**Cache Behavior**:
+- If cache file exists and is valid: Commands loaded from cache with pre-resolved roles (faster)
+- If cache file is missing or invalid: Automatically falls back to `Artisan::all()` (safe)
+- Invalid entries in cache are skipped silently without breaking the application
+
+**Generating the Cache**:
+Use the included `remotisan:cache` command to generate the commands cache:
+
+```bash
+php artisan remotisan:cache
+```
+
+This command will:
+- Scan all registered Artisan commands in your application
+- Extract commands with `RemotisanRoles` attributes or config-based permissions
+- Generate the cache file at `bootstrap/cache/commands.php`
+- Only cache commands that have explicit role permissions (security-first approach)
+- Include commands from app, packages, and vendor
+
+**When to Regenerate**:
+- After `composer update` (when packages change)
+- After adding/removing custom commands
+- As part of your deployment process (recommended)
+- After modifying command permissions via attributes or config
+
+**Production Deployment**:
+```bash
+php artisan remotisan:cache   # Generate commands cache
+php artisan config:cache      # Cache configuration
+php artisan route:cache       # Cache routes
+php artisan view:cache        # Cache views
+```
+
+### Custom Routes Prefix
+
+Customize the default routes prefix by adjusting **base_url_prefix** setting. Don't forget to clear cached routes afterwards.
 
 ### Setting ENV specific commands
 You are able to configure environment specific commands by simply static json string in your .env file with name `REMOTISAN_ALLOWED_COMMANDS`.
@@ -74,7 +169,8 @@ REMOTISAN_ALLOWED_COMMANDS='{"artisanCommandName":{"roles":[]}, "artisanSecondCo
 ```
 
 ## Authentication
-Inside your `AppServiceProvider::boot()` add calls to `\Remotisan::authWith($role, $callable)`.
+
+Inside your `AppServiceProvider::boot()` add calls to `Remotisan::authWith($role, $callable)`.
 
 Callable receives `\Illuminate\Http\Request` instance and should return true if the request matches the given role.
 
@@ -90,6 +186,10 @@ The roles **MUST** be matching to the roles you've defined in _Remotisan_ config
     return $user && $user->isAllowed(UserPermissions::DEV_OPS);
 });
 ```
+
+**Usage Examples:**
+- If `UserPermissions::CommandsExecution = 8`, use `#[RemotisanRoles(['8'])]` in your commands
+- For string roles, use `#[RemotisanRoles(['vault'])]` directly
 
 ## User Identifier
 User identifier is used for auditing job executions, implementer can use any parameter they confident with.

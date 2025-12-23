@@ -26,12 +26,7 @@ class CommandDataTest extends Orchestra
         })->first();;
         $this->original_command = $migrate_status_command;
 
-        $this->command_data = new CommandData(
-            $migrate_status_command->getName(),
-            $migrate_status_command->getDefinition(),
-            $migrate_status_command->getHelp(),
-            $migrate_status_command->getDescription()
-        );
+        $this->command_data = new CommandData($migrate_status_command);
     }
 
     public function testCommandAttributesNotSkewedInternally()
