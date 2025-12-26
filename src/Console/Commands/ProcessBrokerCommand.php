@@ -155,9 +155,8 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
      */
     protected function postKill(): void
     {
-
         $killNote = "\n=============
-            \nPROCESS KILLED BY {$this->executionRecord->intended_to_kill_by} AT " . ((string)Carbon::parse()) . " \n";
+            \nPROCESS KILLED BY {$this->executionRecord->intended_to_kill_by} AT " . (now()->toString()) . " \n";
         file_put_contents($this->pathToLog, $killNote, FILE_APPEND);
         CacheManager::removeKillInstruction($this->executionRecord->job_uuid);
         $this->executionRecord->markKilled();
@@ -226,7 +225,7 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
         $this->isKilled = true;
         $this->process->signal($signal);
         $this->postKill();
-        
+
         return false;
     }
 }
