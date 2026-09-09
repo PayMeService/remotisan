@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import CommandExecution from './components/CommandExecution';
 import HistoryTable from './components/HistoryTable';
-import TerminalLogger from './components/TerminalLogger';
+import BidirectionalVirtualLogViewer from './components/BidirectionalVirtualLogViewer';
 import './../css/app.css';
 
 const App = () => {
@@ -30,10 +30,11 @@ const App = () => {
         activeUuid={activeUuid}
         setActiveUuid={setActiveUuid}
       />
-      <TerminalLogger
+      <BidirectionalVirtualLogViewer
         baseUrl={baseUrl}
         activeUuid={activeUuid}
         setHistoryRefresh={setHistoryRefresh}
+        linesPerChunk={window.remotisanLinesPerChunk || undefined}
       />
       <HistoryTable
         baseUrl={baseUrl}

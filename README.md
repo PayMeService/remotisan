@@ -209,6 +209,31 @@ The audit table logs executions and allows the user to see who executed and what
 Audit table is **_MUST_** for the killing mechanism to work, as well as instance identifier we will cover in next section.
 The table named _**remotisan_executions**_, avoid dropping.
 
+## Log viewer
+Command output is written to one log file per execution, and read back through
+`GET {remotisan.url}/execute/{jobUuid}` one page at a time. The page is addressed by a cursor - the
+byte offset of a line - which the response hands back, so the viewer walks a log of any size
+without the server ever loading the whole file.
+
+| Query parameter | Meaning                                                                  |
+|-----------------|--------------------------------------------------------------------------|
+| `direction`     | `tail` (default), `before` for older lines, `after` for newer ones        |
+| `cursor`        | Byte offset from a previous response - `start` going back, `end` going on |
+| `limit`         | Lines to return, `0` for counters only                                    |
+
+The response carries the `lines` (each with its own `offset`), the `start` and `end` cursors of the
+page, the current `size` of the log, `atStart`/`atEnd` and whether the execution `isEnded`.
+
+The React viewer prefetches the pages on both sides of what is on screen, keeps the scroll anchored
+while older output loads above, and follows the tail only while the user is at the bottom of it.
+
+Two settings tune it, both optional:
+
+```dotenv
+REMOTISAN_MAX_READ_BYTES=1048576   # bytes a single page may read
+REMOTISAN_LINES_PER_CHUNK=200      # lines the viewer asks for per page
+```
+
 ## Instance identifier
 Since the application may run in a multi-instance environment with no direct ssh access to servers, we have to identify instance the remotisan installed at.
 The way it is done is "automagically" from the code, on the access to remotisan we tag the server with GUID. 
