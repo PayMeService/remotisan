@@ -9,10 +9,12 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Validation\Rule;
 use PayMe\Remotisan\CommandsRepository;
 use PayMe\Remotisan\Exceptions\ParametersLengthException;
 use PayMe\Remotisan\Exceptions\RemotisanException;
 use PayMe\Remotisan\FileManager;
+use PayMe\Remotisan\LogReader;
 use PayMe\Remotisan\Models\Execution;
 use PayMe\Remotisan\Remotisan;
 use RuntimeException;
@@ -137,6 +139,11 @@ class RemotisanController extends Controller {
     }
 
     /**
+     * Serves one cursor paginated chunk of an execution log, in either direction.
+     *
+     * The cursor is a byte offset carried over from a previous chunk, so the client can walk the
+     * log backwards and forwards without the server ever holding the whole file.
+     *
      * @param Request $request
      * @param         $uuid
      *
@@ -147,7 +154,20 @@ class RemotisanController extends Controller {
     {
         $this->rt->requireAuthenticated();
 
-        return FileManager::read($uuid);
+        $request->validate([
+            "direction" => ["sometimes", Rule::in(LogReader::DIRECTIONS)],
+            "cursor"    => ["sometimes", "nullable", "integer", "min:0"],
+            "limit"     => ["sometimes", "integer", "min:0", "max:" . LogReader::MAX_LIMIT],
+        ]);
+
+        $cursor = $request->query("cursor");
+
+        return FileManager::read(
+            $uuid,
+            $request->query("direction", LogReader::DIRECTION_TAIL),
+            $cursor === null || $cursor === "" ? null : (int)$cursor,
+            (int)$request->query("limit", LogReader::DEFAULT_LIMIT)
+        );
     }
 
     /**

@@ -38,6 +38,7 @@
 </body>
 <script>
         window.remotisanBaseUrl = "{{ config('remotisan.url') }}";
+        window.remotisanLinesPerChunk = {{ (int)config('remotisan.logger.lines_per_chunk', 200) }};
 </script>
 <script >{!! File::get($files->get("js")) !!}</script>
 </html>

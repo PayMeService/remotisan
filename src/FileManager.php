@@ -28,24 +28,31 @@ class FileManager
     }
 
     /**
-     * Reads the logfile and returns its content + isEnded for front end.
+     * Reads one cursor paginated chunk of an execution's log.
      *
-     * @param $executionUuid
+     * @param string $executionUuid
+     * @param string $direction  after, before or tail - see LogReader.
+     * @param ?int   $cursor     Byte offset taken from a previous chunk.
+     * @param int    $limit      Max lines to return. 0 returns metadata only.
      *
      * @return  array
      * @throws  \Illuminate\Contracts\Filesystem\FileNotFoundException
      */
-    public static function read($executionUuid): array
-    {
+    public static function read(
+        $executionUuid,
+        string $direction = LogReader::DIRECTION_TAIL,
+        ?int $cursor = null,
+        int $limit = LogReader::DEFAULT_LIMIT
+    ): array {
         $executionRecord = Execution::getByJobUuid($executionUuid);
         if (!$executionRecord) {
             throw new RecordNotFoundException();
         }
 
-        return [
-            "content" => explode(PHP_EOL, rtrim(File::get(static::getLogFilePath($executionUuid)))),
-            "isEnded" => !$executionRecord->isRunning()
-        ];
+        $isEnded = !$executionRecord->isRunning();
+
+        return LogReader::chunk(static::getLogFilePath($executionUuid), $direction, $cursor, $limit, $isEnded)
+            + ["isEnded" => $isEnded];
     }
 
     /**
