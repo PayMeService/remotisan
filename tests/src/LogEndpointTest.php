@@ -2,7 +2,9 @@
 
 namespace PayMe\Remotisan\Tests\src;
 
+use Illuminate\Contracts\Filesystem\FileNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PayMe\Remotisan\Exceptions\RecordNotFoundException;
 use PayMe\Remotisan\Exceptions\UnauthenticatedException;
 use PayMe\Remotisan\FileManager;
 use PayMe\Remotisan\LogReader;
@@ -122,6 +124,54 @@ class LogEndpointTest extends TestCase
         $this->readLog(["direction" => "sideways"])->assertStatus(422);
         $this->readLog(["limit" => LogReader::MAX_LIMIT + 1])->assertStatus(422);
         $this->readLog(["cursor" => -5])->assertStatus(422);
+    }
+
+    public function testDownloadStreamsTheWholeLogFile()
+    {
+        $lines = array_map(fn($i) => "line {$i}", range(1, 5000));
+        $this->seedExecution($lines);
+
+        $response = $this->get(config("remotisan.url") . "/execute/{$this->uuid}/download");
+
+        $response->assertOk()
+            ->assertHeader("content-type", "text/plain; charset=UTF-8");
+        $this->assertStringContainsString(
+            "attachment; filename=migrate-status-{$this->uuid}.log",
+            $response->headers->get("content-disposition")
+        );
+        // The whole file comes out, not the page the viewer would have shown.
+        $this->assertEquals(file_get_contents(FileManager::getLogFilePath($this->uuid)), $response->streamedContent());
+    }
+
+    public function testDownloadStreamsAFileBiggerThanOneBlockByteForByte()
+    {
+        // Several read blocks worth, so the streaming loop has to run more than once.
+        $this->seedExecution(array_fill(0, 40, str_repeat("x", 4096)));
+        $path = FileManager::getLogFilePath($this->uuid);
+
+        $response = $this->get(config("remotisan.url") . "/execute/{$this->uuid}/download");
+
+        $this->assertEquals(file_get_contents($path), $response->streamedContent());
+    }
+
+    public function testDownloadingAnUnknownExecutionIsRefused()
+    {
+        $this->withoutExceptionHandling();
+
+        $this->expectException(RecordNotFoundException::class);
+
+        $this->get(config("remotisan.url") . "/execute/does-not-exist/download");
+    }
+
+    public function testDownloadingAMissingLogFileIsRefused()
+    {
+        $this->seedExecution(["one"]);
+        unlink(FileManager::getLogFilePath($this->uuid));
+        $this->withoutExceptionHandling();
+
+        $this->expectException(FileNotFoundException::class);
+
+        $this->get(config("remotisan.url") . "/execute/{$this->uuid}/download");
     }
 
     public function testUnauthenticatedCallersAreTurnedAway()

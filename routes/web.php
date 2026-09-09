@@ -9,6 +9,7 @@ Route::middleware("web")
         Route::get("/filters", [RemotisanController::class, "filters"]);
         Route::post("/execute", [RemotisanController::class, "execute"]);
         Route::get("/execute/{executionUuid}", [RemotisanController::class, "read"]);
+        Route::get("/execute/{executionUuid}/download", [RemotisanController::class, "download"]);
         Route::post("/kill/{uuid}", [RemotisanController::class, "sendKillSignal"]);
         Route::get("/history", [RemotisanController::class, "history"]);
     });

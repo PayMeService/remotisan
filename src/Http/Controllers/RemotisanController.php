@@ -12,12 +12,14 @@ use Illuminate\Routing\Controller;
 use Illuminate\Validation\Rule;
 use PayMe\Remotisan\CommandsRepository;
 use PayMe\Remotisan\Exceptions\ParametersLengthException;
+use PayMe\Remotisan\Exceptions\RecordNotFoundException;
 use PayMe\Remotisan\Exceptions\RemotisanException;
 use PayMe\Remotisan\FileManager;
 use PayMe\Remotisan\LogReader;
 use PayMe\Remotisan\Models\Execution;
 use PayMe\Remotisan\Remotisan;
 use RuntimeException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class RemotisanController extends Controller {
 
@@ -167,6 +169,37 @@ class RemotisanController extends Controller {
             $request->query("direction", LogReader::DIRECTION_TAIL),
             $cursor === null || $cursor === "" ? null : (int)$cursor,
             (int)$request->query("limit", LogReader::DEFAULT_LIMIT)
+        );
+    }
+
+    /**
+     * Streams the whole log file of an execution as a download.
+     *
+     * The file is pushed out block by block rather than read into memory, so a log of any size can
+     * be taken away in full - the paginated viewer only ever shows a window of it.
+     *
+     * @param Request $request
+     * @param         $uuid
+     *
+     * @return StreamedResponse
+     * @throws FileNotFoundException
+     */
+    public function download(Request $request, $uuid): StreamedResponse
+    {
+        $this->rt->requireAuthenticated();
+
+        $execution = Execution::getByJobUuid($uuid);
+
+        if (!$execution) {
+            throw new RecordNotFoundException();
+        }
+
+        $path = FileManager::requireLogFilePath($uuid);
+
+        return response()->streamDownload(
+            fn() => LogReader::stream($path),
+            FileManager::getDownloadFileName($execution),
+            ["Content-Type" => "text/plain; charset=UTF-8"]
         );
     }
 
