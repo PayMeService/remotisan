@@ -124,6 +124,13 @@ class LogEndpointTest extends TestCase
         $this->readLog(["cursor" => -5])->assertStatus(422);
     }
 
+    public function testAnUnknownExecutionIsA404RatherThanAnApplicationError()
+    {
+        // No execution seeded - the endpoint must answer the poll, not blow up the host app's
+        // error handler with a RecordNotFoundException.
+        $this->readLog()->assertStatus(404);
+    }
+
     public function testUnauthenticatedCallersAreTurnedAway()
     {
         $this->seedExecution(["one"]);
