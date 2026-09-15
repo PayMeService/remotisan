@@ -151,6 +151,7 @@ class RemotisanController extends Controller {
      *
      * @return array
      * @throws FileNotFoundException
+     * @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException  When the execution is unknown.
      */
     public function read(Request $request, $uuid): array
     {
@@ -164,12 +165,19 @@ class RemotisanController extends Controller {
 
         $cursor = $request->query("cursor");
 
-        return FileManager::read(
-            $uuid,
-            $request->query("direction", LogReader::DIRECTION_TAIL),
-            $cursor === null || $cursor === "" ? null : (int)$cursor,
-            (int)$request->query("limit", LogReader::DEFAULT_LIMIT)
-        );
+        try {
+            return FileManager::read(
+                $uuid,
+                $request->query("direction", LogReader::DIRECTION_TAIL),
+                $cursor === null || $cursor === "" ? null : (int)$cursor,
+                (int)$request->query("limit", LogReader::DEFAULT_LIMIT)
+            );
+        } catch (RecordNotFoundException $e) {
+            // An unknown execution is a plain 404 for the caller, not an application failure.
+            // Letting it bubble made every poll for a purged - or not yet replicated - execution
+            // register as a fatal error in the host application.
+            abort(404, $e->getMessage());
+        }
     }
 
     /**

@@ -1,5 +1,6 @@
 <?php
 namespace PayMe\Remotisan\Models;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use PayMe\Remotisan\Exceptions\InvalidStatusException;
 use PayMe\Remotisan\ProcessStatuses;
@@ -92,7 +93,21 @@ class Execution extends Model
      */
     public static function getByJobUuid(string $uuid): ?Execution
     {
-        return static::query()->where("job_uuid", $uuid)->first();
+        return static::queryByJobUuid($uuid)->first()
+            ?? static::queryByJobUuid($uuid)->useWritePdo()->first();
+    }
+
+    /**
+     * Base lookup query by JOB_UUID.
+     *
+     * @see Execution::getByJobUuid()
+     *
+     * @param string $uuid
+     * @return Builder
+     */
+    protected static function queryByJobUuid(string $uuid): Builder
+    {
+        return static::query()->where("job_uuid", $uuid);
     }
 
     /**

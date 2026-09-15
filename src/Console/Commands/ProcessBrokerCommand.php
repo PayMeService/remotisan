@@ -63,14 +63,34 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
 
     protected int $recentSignalTime = 0;
 
-    public function handle(Remotisan $remotisan)
+    /**
+     * @param   Remotisan   $remotisan
+     *
+     * @return  int
+     */
+    public function handle(Remotisan $remotisan): int
     {
         $this->remotisan = $remotisan;
-        $this->executionRecord = Execution::getByJobUuid($this->argument("uuid"));
-        $this->pathToLog = FileManager::getLogFilePath($this->executionRecord->job_uuid);
+        $uuid            = (string)$this->argument("uuid");
+        $executionRecord = Execution::getByJobUuid($uuid);
+
+        // The broker is spawned by the request that created the record, so a missing record here
+        // means the execution is unrunnable - there is nothing to report status on. Bail out with
+        // a failing exit code instead of letting a null land on the typed property below, which
+        // used to raise a TypeError and surface as a fatal error.
+        if (!$executionRecord) {
+            $this->error("Execution record not found for uuid {$uuid}");
+
+            return self::FAILURE;
+        }
+
+        $this->executionRecord = $executionRecord;
+        $this->pathToLog       = FileManager::getLogFilePath($this->executionRecord->job_uuid);
 
         $this->executeProcess();
         $this->postExecutionProcessing();
+
+        return self::SUCCESS;
     }
 
     /**
@@ -223,6 +243,13 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
     public function handleSignal(int $signal, int|false $previousExitCode = 0): int|false
     {
         $this->isKilled = true;
+
+        // Signals are subscribed before handle() runs, so a signal may arrive while the process
+        // and the execution record are not set up yet. Nothing to kill or flag in that case.
+        if (!isset($this->process) || !isset($this->executionRecord)) {
+            return false;
+        }
+
         $this->process->signal($signal);
         $this->postKill();
 
