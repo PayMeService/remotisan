@@ -160,9 +160,16 @@ class LogEndpointTest extends TestCase
     public function testDownloadingAMissingLogFileIsRefused()
     {
         $this->seedExecution(["one"]);
-        unlink(FileManager::getLogFilePath($this->uuid));
+        $path = FileManager::getLogFilePath($this->uuid);
+        unlink($path);
 
-        $this->get(config("remotisan.url") . "/execute/{$this->uuid}/download")->assertStatus(404);
+        $response = $this->getJson(config("remotisan.url") . "/execute/{$this->uuid}/download");
+
+        $response->assertStatus(404);
+        // Laravel renders an HTTP exception's message into the body even with app.debug off, so
+        // the refusal must not carry the server side path of the log file.
+        $this->assertStringNotContainsString($path, $response->getContent());
+        $this->assertStringNotContainsString(dirname($path), $response->getContent());
     }
 
     public function testAnUnknownExecutionIsA404RatherThanAnApplicationError()

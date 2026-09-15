@@ -205,11 +205,16 @@ class RemotisanController extends Controller {
             }
 
             $path = FileManager::requireLogFilePath($uuid);
-        } catch (RecordNotFoundException | FileNotFoundException $e) {
+        } catch (RecordNotFoundException | FileNotFoundException) {
             // An unknown execution, or a log that is no longer on disk, is a plain 404 for the
             // caller rather than an application failure - the same treatment read() gives it.
             // Both refusals still land before the response starts streaming.
-            abort(404, $e->getMessage());
+            //
+            // The message is deliberately not the caught one: FileNotFoundException carries the
+            // absolute path of the log file, and Laravel renders an HTTP exception's message into
+            // the response body even with app.debug off. The caller only needs to know there is
+            // nothing to fetch.
+            abort(404, "Not Found");
         }
 
         return response()->streamDownload(
