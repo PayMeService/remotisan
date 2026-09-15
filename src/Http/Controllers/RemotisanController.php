@@ -190,19 +190,27 @@ class RemotisanController extends Controller {
      * @param         $uuid
      *
      * @return StreamedResponse
-     * @throws FileNotFoundException
+     * @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException  When the execution
+     *         is unknown or its log file is gone.
      */
     public function download(Request $request, $uuid): StreamedResponse
     {
         $this->rt->requireAuthenticated();
 
-        $execution = Execution::getByJobUuid($uuid);
+        try {
+            $execution = Execution::getByJobUuid($uuid);
 
-        if (!$execution) {
-            throw new RecordNotFoundException();
+            if (!$execution) {
+                throw new RecordNotFoundException();
+            }
+
+            $path = FileManager::requireLogFilePath($uuid);
+        } catch (RecordNotFoundException | FileNotFoundException $e) {
+            // An unknown execution, or a log that is no longer on disk, is a plain 404 for the
+            // caller rather than an application failure - the same treatment read() gives it.
+            // Both refusals still land before the response starts streaming.
+            abort(404, $e->getMessage());
         }
-
-        $path = FileManager::requireLogFilePath($uuid);
 
         return response()->streamDownload(
             fn() => LogReader::stream($path),

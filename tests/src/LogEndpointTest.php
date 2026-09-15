@@ -2,9 +2,7 @@
 
 namespace PayMe\Remotisan\Tests\src;
 
-use Illuminate\Contracts\Filesystem\FileNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use PayMe\Remotisan\Exceptions\RecordNotFoundException;
 use PayMe\Remotisan\Exceptions\UnauthenticatedException;
 use PayMe\Remotisan\FileManager;
 use PayMe\Remotisan\LogReader;
@@ -156,22 +154,15 @@ class LogEndpointTest extends TestCase
 
     public function testDownloadingAnUnknownExecutionIsRefused()
     {
-        $this->withoutExceptionHandling();
-
-        $this->expectException(RecordNotFoundException::class);
-
-        $this->get(config("remotisan.url") . "/execute/does-not-exist/download");
+        $this->get(config("remotisan.url") . "/execute/does-not-exist/download")->assertStatus(404);
     }
 
     public function testDownloadingAMissingLogFileIsRefused()
     {
         $this->seedExecution(["one"]);
         unlink(FileManager::getLogFilePath($this->uuid));
-        $this->withoutExceptionHandling();
 
-        $this->expectException(FileNotFoundException::class);
-
-        $this->get(config("remotisan.url") . "/execute/{$this->uuid}/download");
+        $this->get(config("remotisan.url") . "/execute/{$this->uuid}/download")->assertStatus(404);
     }
 
     public function testAnUnknownExecutionIsA404RatherThanAnApplicationError()
