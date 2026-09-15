@@ -118,3 +118,21 @@ Reference `LOCAL_REPOSITORY_SETUP.md` for detailed instructions on:
 - Requires shared cache (Redis) for kill signal coordination
 - Server identification via UUID prevents cross-instance conflicts
 - Database audit table maintains execution history across instances
+### Read Replicas and the Execution Record
+
+Host applications commonly configure the default connection with a `read`/`write` split. The
+execution record is written by the `POST /execute` request, but the two consumers that look it up
+immediately afterwards run outside that request:
+
+1. `ProcessBrokerCommand` - a separate CLI process
+2. `RemotisanController::read()` - the frontend's first log poll, ~100ms later
+
+Laravel's `sticky` flag only keeps reads on the primary *within the writing request*, so both of
+these hit the replica and can miss a row that has not replicated yet. `Execution::getByJobUuid()`
+therefore queries the replica first and retries a miss against the write connection. Any new
+lookup of a freshly created execution must go through that method rather than building its own
+query, or the race comes back.
+
+When the record is genuinely absent, the failure modes are deliberate and must stay that way:
+the broker exits with `FAILURE` after printing why, and the read endpoint answers `404`. Neither
+should surface as a fatal error in the host application.
