@@ -88,6 +88,49 @@ class LogReader
     }
 
     /**
+     * Echoes the whole log file in blocks, for a streamed download.
+     *
+     * Nothing bigger than one block is ever held in memory. The stream stops at the size the file
+     * had when it opened, so a log that is still being written ends at a defined point instead of
+     * trailing the process forever.
+     *
+     * @param   string  $path
+     *
+     * @return  void
+     * @throws  \Illuminate\Contracts\Filesystem\FileNotFoundException
+     */
+    public static function stream(string $path): void
+    {
+        if (!is_file($path)) {
+            throw new FileNotFoundException("File does not exist at path {$path}.");
+        }
+
+        clearstatcache(true, $path);
+        $remaining = (int)filesize($path);
+        $handle    = fopen($path, "rb");
+
+        if ($handle === false) {
+            return;
+        }
+
+        try {
+            while ($remaining > 0) {
+                $block = fread($handle, (int)min(static::BLOCK_BYTES, $remaining));
+
+                if ($block === false || $block === "") {
+                    break;
+                }
+
+                $remaining -= strlen($block);
+                echo $block;
+                flush();
+            }
+        } finally {
+            fclose($handle);
+        }
+    }
+
+    /**
      * Collects up to $limit lines starting at $start, going forward.
      *
      * @param   resource  $handle

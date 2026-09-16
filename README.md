@@ -227,6 +227,17 @@ page, the current `size` of the log, `atStart`/`atEnd` and whether the execution
 The React viewer prefetches the pages on both sides of what is on screen, keeps the scroll anchored
 while older output loads above, and follows the tail only while the user is at the bottom of it.
 
+The viewer only ever shows a window of the log. To take one away in full there is
+
+```http
+GET {remotisan.url}/execute/{jobUuid}/download
+```
+
+which streams the file block by block, behind the "Download log" button in the viewer. Nothing
+bigger than a block is held in memory, so the size of the log does not matter. The stream ends at
+the size the file had when it opened, so downloading the log of a still running command gives the
+output up to that moment rather than following the process.
+
 Two settings tune it, both optional:
 
 ```dotenv

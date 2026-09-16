@@ -19,6 +19,7 @@ use PayMe\Remotisan\LogReader;
 use PayMe\Remotisan\Models\Execution;
 use PayMe\Remotisan\Remotisan;
 use RuntimeException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class RemotisanController extends Controller {
 
@@ -177,6 +178,50 @@ class RemotisanController extends Controller {
             // register as a fatal error in the host application.
             abort(404, $e->getMessage());
         }
+    }
+
+    /**
+     * Streams the whole log file of an execution as a download.
+     *
+     * The file is pushed out block by block rather than read into memory, so a log of any size can
+     * be taken away in full - the paginated viewer only ever shows a window of it.
+     *
+     * @param Request $request
+     * @param         $uuid
+     *
+     * @return StreamedResponse
+     * @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException  When the execution
+     *         is unknown or its log file is gone.
+     */
+    public function download(Request $request, $uuid): StreamedResponse
+    {
+        $this->rt->requireAuthenticated();
+
+        try {
+            $execution = Execution::getByJobUuid($uuid);
+
+            if (!$execution) {
+                throw new RecordNotFoundException();
+            }
+
+            $path = FileManager::requireLogFilePath($uuid);
+        } catch (RecordNotFoundException | FileNotFoundException) {
+            // An unknown execution, or a log that is no longer on disk, is a plain 404 for the
+            // caller rather than an application failure - the same treatment read() gives it.
+            // Both refusals still land before the response starts streaming.
+            //
+            // The message is deliberately not the caught one: FileNotFoundException carries the
+            // absolute path of the log file, and Laravel renders an HTTP exception's message into
+            // the response body even with app.debug off. The caller only needs to know there is
+            // nothing to fetch.
+            abort(404, "Not Found");
+        }
+
+        return response()->streamDownload(
+            fn() => LogReader::stream($path),
+            FileManager::getDownloadFileName($execution),
+            ["Content-Type" => "text/plain; charset=UTF-8"]
+        );
     }
 
     /**

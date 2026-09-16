@@ -1,6 +1,7 @@
 <?php
 namespace PayMe\Remotisan;
 
+use Illuminate\Contracts\Filesystem\FileNotFoundException;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use PayMe\Remotisan\Exceptions\RecordNotFoundException;
@@ -53,6 +54,41 @@ class FileManager
 
         return LogReader::chunk(static::getLogFilePath($executionUuid), $direction, $cursor, $limit, $isEnded)
             + ["isEnded" => $isEnded];
+    }
+
+    /**
+     * Resolves the log file of an execution, refusing to hand back a path that is not there.
+     *
+     * @param   string  $executionUuid
+     *
+     * @return  string
+     * @throws  \Illuminate\Contracts\Filesystem\FileNotFoundException
+     */
+    public static function requireLogFilePath(string $executionUuid): string
+    {
+        $path = static::getLogFilePath($executionUuid);
+
+        if (!File::exists($path)) {
+            throw new FileNotFoundException("File does not exist at path {$path}.");
+        }
+
+        return $path;
+    }
+
+    /**
+     * Builds a readable file name for a downloaded log, ending with the job uuid so downloads of
+     * the same command stay apart.
+     *
+     * @param   Execution  $execution
+     *
+     * @return  string
+     */
+    public static function getDownloadFileName(Execution $execution): string
+    {
+        // Command names carry colons, which Str::slug drops rather than separates.
+        $command = Str::slug(str_replace(":", "-", trim($execution->command . " " . $execution->parameters)));
+
+        return Str::limit($command ?: "remotisan", 60, "") . "-" . $execution->job_uuid . ".log";
     }
 
     /**

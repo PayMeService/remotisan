@@ -227,6 +227,15 @@ const BidirectionalVirtualLogViewer = ({
           {!log.isEnded && activeUuid && (
             <span className="text-green-600">running</span>
           )}
+          {activeUuid && (
+            <a
+              href={`${baseUrl}/execute/${activeUuid}/download`}
+              className="px-2 py-1 rounded border border-gray-300 hover:bg-gray-100"
+              title="Download the whole log file"
+            >
+              Download log
+            </a>
+          )}
           {!following && (
             <button
               type="button"

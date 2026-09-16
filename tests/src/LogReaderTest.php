@@ -235,6 +235,54 @@ class LogReaderTest extends TestCase
         $this->assertEquals(["windows", "line"], $this->texts($chunk));
     }
 
+    public function testStreamEmitsTheWholeFile()
+    {
+        $this->writeLog(["one", "two", "three"]);
+
+        ob_start();
+        LogReader::stream($this->path);
+        $streamed = ob_get_clean();
+
+        $this->assertEquals(file_get_contents($this->path), $streamed);
+    }
+
+    public function testStreamStopsAtTheSizeTheFileHadWhenItOpened()
+    {
+        // Two blocks worth, so the log can grow between one block going out and the next.
+        $this->writeLog([str_repeat("a", 65536), str_repeat("b", 65536)]);
+        $sizeAtOpen = filesize($this->path);
+        $path       = $this->path;
+        $captured   = "";
+        $grown      = false;
+
+        // The buffer callback runs between blocks - the writing process carrying on, in effect.
+        ob_start(function ($chunk) use ($path, &$captured, &$grown) {
+            $captured .= $chunk;
+
+            if (!$grown) {
+                $grown = true;
+                file_put_contents($path, "written while streaming\n", FILE_APPEND);
+            }
+
+            return "";
+        }, 4096);
+        LogReader::stream($path);
+        ob_end_flush();
+        clearstatcache(true, $path);
+
+        $this->assertTrue($grown, "the log has to grow mid stream for this to prove anything");
+        $this->assertGreaterThan($sizeAtOpen, filesize($path));
+        $this->assertEquals($sizeAtOpen, strlen($captured));
+        $this->assertStringNotContainsString("written while streaming", $captured);
+    }
+
+    public function testStreamThrowsWhenTheLogIsMissing()
+    {
+        $this->expectException(FileNotFoundException::class);
+
+        LogReader::stream($this->path . ".nope");
+    }
+
     public function testThrowsWhenTheLogIsMissing()
     {
         $this->expectException(FileNotFoundException::class);
