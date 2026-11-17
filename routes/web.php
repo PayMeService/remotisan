@@ -10,6 +10,8 @@ Route::middleware("web")
         Route::post("/execute", [RemotisanController::class, "execute"]);
         Route::get("/execute/{executionUuid}", [RemotisanController::class, "read"]);
         Route::get("/execute/{executionUuid}/download", [RemotisanController::class, "download"]);
+        Route::get("/execute/{executionUuid}/prompt", [RemotisanController::class, "prompt"]);
+        Route::post("/execute/{executionUuid}/input", [RemotisanController::class, "input"]);
         Route::post("/kill/{uuid}", [RemotisanController::class, "sendKillSignal"]);
         Route::get("/history", [RemotisanController::class, "history"]);
     });

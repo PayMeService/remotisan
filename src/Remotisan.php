@@ -7,6 +7,7 @@ use Illuminate\Support\Str;
 use PayMe\Remotisan\Exceptions\RecordNotFoundException;
 use PayMe\Remotisan\Exceptions\RemotisanException;
 use PayMe\Remotisan\Exceptions\UnauthenticatedException;
+use PayMe\Remotisan\Interactive\PromptChannel;
 use PayMe\Remotisan\Models\Execution;
 use RuntimeException;
 
@@ -97,6 +98,84 @@ class Remotisan
         CacheManager::addKillInstruction($uuid);
 
         return $uuid;
+    }
+
+    /**
+     * The question a running execution is waiting on, as the browser should render it.
+     *
+     * @param   string  $uuid
+     *
+     * @return  array{prompt: array<string, mixed>|null, canAnswer: bool, isRunning: bool}
+     * @throws  RecordNotFoundException
+     */
+    public function getPendingPrompt(string $uuid): array
+    {
+        $executionRecord = Execution::getByJobUuid($uuid);
+
+        if (!$executionRecord) {
+            throw new RecordNotFoundException();
+        }
+
+        $prompt = $executionRecord->isRunning() ? app(PromptChannel::class)->getPrompt($uuid) : null;
+
+        return [
+            "prompt"    => $prompt,
+            "canAnswer" => $prompt !== null && $this->canAnswer($executionRecord),
+            "isRunning" => $executionRecord->isRunning(),
+        ];
+    }
+
+    /**
+     * Answer the question a running execution is waiting on.
+     *
+     * Only the user who started the execution (or a super user) may answer: an answer is input to
+     * their command, often a secret. The answer is handed to the broker encrypted through the cache
+     * and is never persisted or logged here.
+     *
+     * @param   string  $uuid
+     * @param   string  $promptId  must match the pending prompt, so a stale or replayed answer
+     *                             can't land on a later question
+     * @param   string  $answer
+     *
+     * @return  void
+     * @throws  RecordNotFoundException
+     * @throws  UnauthenticatedException
+     * @throws  RemotisanException
+     */
+    public function submitInput(string $uuid, string $promptId, string $answer): void
+    {
+        $executionRecord = Execution::getByJobUuid($uuid);
+
+        if (!$executionRecord) {
+            throw new RecordNotFoundException();
+        }
+
+        if (!$this->canAnswer($executionRecord)) {
+            throw new UnauthenticatedException("Action Not Allowed", 401);
+        }
+
+        if (!$executionRecord->isRunning()) {
+            throw new RemotisanException("Execution is not running", 422);
+        }
+
+        $channel = app(PromptChannel::class);
+        $prompt  = $channel->getPrompt($uuid);
+
+        if (!$prompt || !hash_equals((string)$prompt["id"], $promptId)) {
+            throw new RemotisanException("No such pending prompt", 409);
+        }
+
+        $channel->submitAnswer($uuid, $promptId, $answer);
+    }
+
+    /**
+     * @param   Execution  $executionRecord
+     *
+     * @return  bool
+     */
+    protected function canAnswer(Execution $executionRecord): bool
+    {
+        return $executionRecord->user_identifier == $this->getUserIdentifier() || $this->isSuperUser();
     }
 
     /**

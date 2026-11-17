@@ -136,3 +136,35 @@ query, or the race comes back.
 When the record is genuinely absent, the failure modes are deliberate and must stay that way:
 the broker exits with `FAILURE` after printing why, and the read endpoint answers `404`. Neither
 should surface as a fatal error in the host application.
+
+### Interactive Commands (Live Input)
+
+Commands run by the broker can ask questions that the user answers live in the browser.
+The code is in `src/Interactive/`:
+
+- `PromptProtocol` is the wire format. The child writes a marker line
+  `@@remotisan:prompt@@{json}` to stdout and reads one base64-encoded answer line from stdin.
+- `RemotisanOutputStyle` is bound in place of `Illuminate\Console\OutputStyle` only when
+  `REMOTISAN_INTERACTIVE=1` (set by the broker), in `RemotisanServiceProvider::registerInteractiveOutputStyle()`.
+  Its `askQuestion()` is where every Laravel question API ends up. The provider also forces the
+  Laravel Prompts fallback, so `text()`/`password()` reach it instead of returning their defaults.
+- `PromptChannel` stores the pending prompt and the answers in the cache. Answers are encrypted,
+  have a short TTL and are deleted on read. In a multi-instance setup this needs a shared cache,
+  as kill instructions do.
+- `ProcessBrokerCommand` gives the child an open `InputStream`. It strips markers from the output
+  (`handleOutput`), writes `? question` to the log (`openPrompt`), and in its 100ms loop feeds
+  answers to the child (`deliverAnswer`). A secret is echoed to the log as `> ********`.
+- HTTP: `GET /execute/{uuid}/prompt`, and `POST /execute/{uuid}/input` with `{promptId, answer}`.
+  Only the owner or a super user may answer, and the prompt id must match the pending prompt.
+- Frontend: `hooks/usePendingPrompt.js` and `components/PromptInput.jsx` (a password input for secrets).
+
+Rules for secrets:
+- Never log an answer, store it, return it in a response or pass it as a process argument.
+- `RemotisanController::input()` deliberately skips Laravel's validator, so its failure path can't
+  flash the answer into the session.
+
+Testing notes:
+- `ProcessBrokerInteractiveTest` runs a real child process (`tests/fixtures/interactive_child.php`)
+  against a scripted `PromptChannel`.
+- The broker's kill check memoizes `FileManager::$server_uuid` in a static. Reset it in `tearDown`
+  of any test that runs the broker, or `RemotisanTest::testGetInstanceUuid` fails depending on test order.

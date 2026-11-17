@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import CommandExecution from './components/CommandExecution';
 import HistoryTable from './components/HistoryTable';
 import BidirectionalVirtualLogViewer from './components/BidirectionalVirtualLogViewer';
+import PromptInput from './components/PromptInput';
 import './../css/app.css';
 
 const App = () => {
@@ -36,6 +37,7 @@ const App = () => {
         setHistoryRefresh={setHistoryRefresh}
         linesPerChunk={window.remotisanLinesPerChunk || undefined}
       />
+      <PromptInput baseUrl={baseUrl} activeUuid={activeUuid} />
       <HistoryTable
         baseUrl={baseUrl}
         setActiveUuid={setActiveUuid}
