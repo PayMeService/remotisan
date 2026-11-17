@@ -56,7 +56,7 @@ class RemotisanController extends Controller {
         $this->rt->requireAuthenticated();
 
         return [
-            "commands" => $this->commandsRepo->allByRole($this->rt->getUserGroup())
+            "commands" => $this->commandsRepo->allByRole($this->rt->getUserRoles())
         ];
     }
 

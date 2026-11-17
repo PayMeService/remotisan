@@ -42,6 +42,7 @@ The package is designed to work with Laravel applications using Orchestra Testbe
 
 **Authentication & Authorization**
 - Role-based access control via `Remotisan::authWith($role, $callable)`
+- A user holds every matching role (`Remotisan::getUserRoles()`); a command is allowed when any of them is in its `RemotisanRoles`/config roles. `getUserGroup()` (first match) is kept for BC only - don't authorize with it
 - Commands configured in `config/remotisan.php` with role requirements
 - Super user concept allows killing any process
 - User identification via configurable callback

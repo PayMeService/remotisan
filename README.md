@@ -191,6 +191,18 @@ The roles **MUST** be matching to the roles you've defined in _Remotisan_ config
 - If `UserPermissions::CommandsExecution = 8`, use `#[RemotisanRoles(['8'])]` in your commands
 - For string roles, use `#[RemotisanRoles(['vault'])]` directly
 
+**A user holds every role they match.** Each `authWith()` whose callable returns true adds its role, and a user may run any command tagged with any of their roles. That lets you put one sensitive command behind a narrow role without taking anything away from the users who also hold a broader role:
+
+```php
+\Remotisan::authWith(UserPermissions::CommandsExecution, fn($request) => $request->user()?->isAllowed(UserPermissions::CommandsExecution));
+\Remotisan::authWith(UserPermissions::SuperAdmin, fn($request) => $request->user()?->isAllowed(UserPermissions::SuperAdmin));
+
+#[RemotisanRoles([UserPermissions::SuperAdmin])]   // only super admins
+class ImportUsersCommand extends Command {}
+```
+
+A super admin who also has `CommandsExecution` sees both the super-admin commands and the `CommandsExecution` ones. `Remotisan::getUserRoles()` returns all matched roles; `getUserGroup()` still returns the first one, for backwards compatibility.
+
 ## User Identifier
 User identifier is used for auditing job executions, implementer can use any parameter they confident with.
 As well, have to implement you custom UserIdentifierGetter in AppServiceProvider

@@ -45,7 +45,7 @@ class Remotisan
             throw new RuntimeException("command '{$command}' not allowed");
         }
 
-        $commandData->checkExecute($this->getUserGroup());
+        $commandData->checkExecute($this->getUserRoles());
         $uuid = Str::uuid()->toString();
         Execution::create([
             "job_uuid"        => $uuid,
@@ -207,16 +207,34 @@ class Remotisan
     }
 
     /**
+     * The first role the current user matches, in {@see authWith()} registration order.
+     *
+     * Kept for backwards compatibility; authorization uses {@see getUserRoles()}, since a user can
+     * hold several roles.
+     *
      * @return  string|null
      */
     public function getUserGroup(): ?string
     {
+        return $this->getUserRoles()[0] ?? null;
+    }
+
+    /**
+     * Every role the current user matches - one per {@see authWith()} registration whose callable
+     * returns true - in registration order.
+     *
+     * @return  array<int, string|int>
+     */
+    public function getUserRoles(): array
+    {
         $request = Request::instance();
 
         return collect(static::$authWith)
-                   ->first(function (array $roleData) use ($request) {
-                       return call_user_func_array($roleData["callable"], [$request]);
-                   })["role"] ?? null;
+                   ->filter(fn(array $roleData) => (bool)call_user_func_array($roleData["callable"], [$request]))
+                   ->pluck("role")
+                   ->unique()
+                   ->values()
+                   ->all();
     }
 
     /**
@@ -225,7 +243,7 @@ class Remotisan
      */
     public function requireAuthenticated(): void
     {
-        if (! $this->getUserGroup()) {
+        if (empty($this->getUserRoles())) {
             throw new UnauthenticatedException();
         }
     }

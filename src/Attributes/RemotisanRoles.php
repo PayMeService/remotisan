@@ -23,4 +23,18 @@ class RemotisanRoles
     {
         return in_array('*', $this->roles) || in_array($role, $this->roles);
     }
+
+    /**
+     * @param array<int, string|int> $roles
+     */
+    public function hasAnyRole(array $roles): bool
+    {
+        foreach ($roles as $role) {
+            if ($this->hasRole((string)$role)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }
