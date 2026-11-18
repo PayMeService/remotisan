@@ -18,6 +18,13 @@ return [
         "should-scope" => false,
     ],
     "kill_switch_key_prefix" => "remotisan:killing",
+    "interactive"            => [
+        // Cache key prefix for pending prompts and (encrypted, short-lived) answers.
+        // Multi-instance deployments need a shared cache store, as for kill instructions.
+        "key_prefix"        => "remotisan:input",
+        // Longest answer accepted, in characters (a pasted bundle or certificate fits).
+        "max_answer_length" => (int)env("REMOTISAN_MAX_ANSWER_LENGTH", 65536),
+    ],
     "allow_process_kill"     => true,
     "super_users"            => []
 ];

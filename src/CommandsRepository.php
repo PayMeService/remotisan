@@ -129,14 +129,16 @@ class CommandsRepository
     }
 
     /**
-     * @param string $role
+     * The commands a user holding any of the given roles may execute.
+     *
+     * @param string|int|array<int, string|int> $roles
      *
      * @return Collection
      */
-    public function allByRole($role): Collection
+    public function allByRole($roles): Collection
     {
         return $this->all()
-            ->filter(fn(CommandData $command) => $command->canExecute($role));
+            ->filter(fn(CommandData $command) => $command->canExecute($roles ?? []));
     }
 
     /**

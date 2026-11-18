@@ -56,7 +56,7 @@ class RemotisanController extends Controller {
         $this->rt->requireAuthenticated();
 
         return [
-            "commands" => $this->commandsRepo->allByRole($this->rt->getUserGroup())
+            "commands" => $this->commandsRepo->allByRole($this->rt->getUserRoles())
         ];
     }
 
@@ -222,6 +222,64 @@ class RemotisanController extends Controller {
             FileManager::getDownloadFileName($execution),
             ["Content-Type" => "text/plain; charset=UTF-8"]
         );
+    }
+
+    /**
+     * The question a running execution is waiting on, polled by the browser.
+     *
+     * @param Request $request
+     * @param string  $uuid
+     *
+     * @return array{prompt: array<string, mixed>|null, canAnswer: bool, isRunning: bool}
+     */
+    public function prompt(Request $request, string $uuid): array
+    {
+        $this->rt->requireAuthenticated();
+
+        try {
+            return $this->rt->getPendingPrompt($uuid);
+        } catch (RecordNotFoundException) {
+            abort(404, "Not Found");
+        }
+    }
+
+    /**
+     * Answer the question a running execution is waiting on.
+     *
+     * The answer may be a secret, so it is deliberately not run through Laravel's validator (whose
+     * failure path can flash input to the session), never logged, and never echoed back: the
+     * response carries no part of it.
+     *
+     * @param Request $request
+     * @param string  $uuid
+     *
+     * @return JsonResponse
+     */
+    public function input(Request $request, string $uuid): JsonResponse
+    {
+        $this->rt->requireAuthenticated();
+
+        $promptId = $request->json("promptId");
+        // ConvertEmptyStringsToNull turns "" into null; an empty answer means "take the default".
+        $answer = $request->json("answer") ?? "";
+
+        if (!is_string($promptId) || $promptId === "" || !is_string($answer)) {
+            return response()->json(["message" => "promptId and answer are required strings"], 422);
+        }
+
+        if (mb_strlen($answer) > config("remotisan.interactive.max_answer_length")) {
+            return response()->json(["message" => "Answer is too long"], 422);
+        }
+
+        try {
+            $this->rt->submitInput($uuid, $promptId, $answer);
+        } catch (RecordNotFoundException) {
+            return response()->json(["message" => "Not Found"], 404);
+        } catch (RemotisanException $e) {
+            return response()->json(["message" => $e->getMessage()], $e->getCode() ?: 500);
+        }
+
+        return response()->json(["accepted" => true]);
     }
 
     /**

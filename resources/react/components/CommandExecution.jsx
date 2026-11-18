@@ -305,6 +305,10 @@ const CommandExecution = ({ baseUrl = '', activeUuid, setActiveUuid }) => {
               {showDropdown && filteredCommands.length > 0 && (
                 <div
                   ref={dropdownRef}
+                  // Keep the focus in the search input while an item is pressed. Otherwise the
+                  // input blurs on mousedown, its onBlur hides the list 150ms later, and a click
+                  // held longer than that lands on nothing - the selection is silently lost.
+                  onMouseDown={(event) => event.preventDefault()}
                   style={{
                     position: 'absolute',
                     zIndex: 50,

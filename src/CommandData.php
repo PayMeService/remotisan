@@ -170,17 +170,27 @@ class CommandData implements Arrayable, JsonSerializable
     }
 
     /**
-     * Check if user can execute based on role
+     * Check if a user holding any of the given roles can execute this command.
      *
-     * @param string $role Role string (can be permission constant as string or role name)
+     * A user may hold several roles at once (one per matching {@see \PayMe\Remotisan\Remotisan::authWith()}
+     * registration), so a command tagged with a narrow role - e.g. a super admin one - is reachable by
+     * those users without them losing the commands of their broader roles.
+     *
+     * @param string|int|array<int, string|int> $roles Role(s) of the user (permission constants or role names)
      * @return bool
      */
-    public function canExecute(string $role): bool
+    public function canExecute(string|int|array $roles): bool
     {
+        $userRoles = Arr::wrap($roles);
+
+        if (empty($userRoles)) {
+            return false;
+        }
+
         try {
             // Use cached roles if available (from cache file)
             if ($this->cachedRoles !== null) {
-                return in_array("*", $this->cachedRoles) || in_array($role, $this->cachedRoles);
+                return $this->matchesAny($this->cachedRoles, $userRoles);
             }
 
             // Otherwise use reflection (fallback for uncached commands)
@@ -190,40 +200,57 @@ class CommandData implements Arrayable, JsonSerializable
             if (!empty($attributes)) {
                 $remotisanRoles = $attributes[0]->newInstance();
 
-                return $remotisanRoles->hasRole($role);
+                return $remotisanRoles->hasAnyRole($userRoles);
             }
 
-            // If command has no attributes, check config as fallback
-            $roles = Arr::wrap(config("remotisan.commands.allowed.{$this->getName()}.roles", []));
-            if (!empty($roles)) {
-                return in_array("*", $roles) || in_array($role, $roles);
-            }
-
-            // If command exists but has no attributes and no config, deny access by default
-            return false;
+            // If command has no attributes, check config as fallback.
+            // If command exists but has no attributes and no config, deny access by default.
+            return $this->matchesAny($this->configRoles(), $userRoles);
         } catch (\Exception $e) {
-            // If reflection fails, fall back to config
-            $roles = Arr::wrap(config("remotisan.commands.allowed.{$this->getName()}.roles", []));
-
-            // If no config is found, deny access by default (security-first)
-            if (empty($roles)) {
-                return false;
-            }
-
-            return in_array("*", $roles) || in_array($role, $roles);
+            // If reflection fails, fall back to config. No config denies access (security-first).
+            return $this->matchesAny($this->configRoles(), $userRoles);
         }
     }
 
     /**
-     * @param string $role
+     * @param string|int|array<int, string|int> $roles
      *
      * @return void
      * @throws UnauthenticatedException
      */
-    public function checkExecute(string $role): void
+    public function checkExecute(string|int|array $roles): void
     {
-        if (!$this->canExecute($role)) {
+        if (!$this->canExecute($roles)) {
             throw new UnauthenticatedException();
         }
+    }
+
+    /**
+     * @return array<int, string|int>
+     */
+    private function configRoles(): array
+    {
+        return Arr::wrap(config("remotisan.commands.allowed.{$this->getName()}.roles", []));
+    }
+
+    /**
+     * @param array<int, string|int> $commandRoles
+     * @param array<int, string|int> $userRoles
+     *
+     * @return bool
+     */
+    private function matchesAny(array $commandRoles, array $userRoles): bool
+    {
+        if (in_array("*", $commandRoles)) {
+            return true;
+        }
+
+        foreach ($userRoles as $role) {
+            if (in_array($role, $commandRoles)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

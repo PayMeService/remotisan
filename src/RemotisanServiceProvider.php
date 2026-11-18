@@ -4,9 +4,13 @@ namespace PayMe\Remotisan;
 
 use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Contracts\Debug\ExceptionHandler;
+use Illuminate\Console\OutputStyle;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Prompts\Prompt;
 use PayMe\Remotisan\Console\Commands\CacheCommandsCommand;
 use PayMe\Remotisan\Console\Commands\ProcessBrokerCommand;
+use PayMe\Remotisan\Interactive\PromptProtocol;
+use PayMe\Remotisan\Interactive\RemotisanOutputStyle;
 use Throwable;
 
 class RemotisanServiceProvider extends ServiceProvider
@@ -55,6 +59,31 @@ class RemotisanServiceProvider extends ServiceProvider
         $this->app->singleton(Remotisan::class, function ($app) {
             return new Remotisan(new CommandsRepository(), new ProcessExecutor());
         });
+
+        $this->registerInteractiveOutputStyle();
+    }
+
+    /**
+     * Inside a process spawned by the broker, route the command's questions to the browser.
+     *
+     * Commands resolve their output style from the container ({@see \Illuminate\Console\Command::run()}),
+     * so swapping the binding covers ask/secret/confirm/choice. Laravel Prompts would instead return
+     * their default for lack of a TTY; forcing their fallback sends them through the same output
+     * style. Any process without the broker's flag is left untouched.
+     *
+     * @return void
+     */
+    protected function registerInteractiveOutputStyle(): void
+    {
+        if (!$this->app->runningInConsole() || getenv(PromptProtocol::ENV_FLAG) !== "1") {
+            return;
+        }
+
+        $this->app->bind(OutputStyle::class, RemotisanOutputStyle::class);
+
+        if (class_exists(Prompt::class)) {
+            Prompt::fallbackWhen(true);
+        }
     }
 
     protected function ensureSignalsConstants(): void

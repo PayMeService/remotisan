@@ -16,9 +16,12 @@ use PayMe\Remotisan\Events\ExecutionCompleted;
 use PayMe\Remotisan\Events\ExecutionFailed;
 use PayMe\Remotisan\Events\ExecutionKilled;
 use PayMe\Remotisan\FileManager;
+use PayMe\Remotisan\Interactive\PromptChannel;
+use PayMe\Remotisan\Interactive\PromptProtocol;
 use PayMe\Remotisan\Models\Execution;
 use PayMe\Remotisan\Remotisan;
 use Symfony\Component\Console\Command\SignalableCommandInterface;
+use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
 
 class ProcessBrokerCommand extends Command implements SignalableCommandInterface
@@ -62,6 +65,19 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
     protected array $killSignalsList = [SIGQUIT, SIGINT, SIGTERM, SIGHUP];
 
     protected int $recentSignalTime = 0;
+
+    /**
+     * The child's stdin, kept open for the whole run so answers can be fed in live.
+     */
+    protected InputStream $stdin;
+
+    protected PromptChannel $promptChannel;
+
+    /**
+     * @var array{id: string, question: string, secret: bool, multiline: bool, default: ?string, choices: ?array<int, string>}|null
+     *      the question the child is blocked on, if any
+     */
+    protected ?array $pendingPrompt = null;
 
     /**
      * @param   Remotisan   $remotisan
@@ -125,7 +141,7 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
                         }
                     }
                 } else {
-                    file_put_contents($this->pathToLog, trim($data)."\n", FILE_APPEND);
+                    $this->handleOutput($data);
                 }
             });
 
@@ -136,19 +152,107 @@ class ProcessBrokerCommand extends Command implements SignalableCommandInterface
                     $this->recentSignalTime = time();
                     $this->process->signal((!empty($this->killSignalsList) ? array_shift($this->killSignalsList) : SIGKILL));
                 }
+                $this->deliverAnswer();
                 usleep(100000); // Sleep for 100 milliseconds
             }
 
         } catch (\Throwable $e) {
             $this->isErroneous = true;
             $this->errorMessage = $e->getMessage();
+        } finally {
+            // Whatever ended the run, nobody may answer a prompt that no process is waiting on.
+            $this->stdin->close();
+            $this->promptChannel->clearPrompt($this->executionRecord->job_uuid);
+            $this->pendingPrompt = null;
         }
+    }
+
+    /**
+     * Route one chunk of the child's stdout: prompt markers become a pending prompt, the rest
+     * goes to the log file as before.
+     *
+     * @param   string  $data
+     *
+     * @return  void
+     */
+    protected function handleOutput(string $data): void
+    {
+        [$output, $prompts] = PromptProtocol::extractPrompts($data);
+
+        // A chunk that carried only markers adds nothing to the log.
+        if ($prompts === [] || trim($output) !== "") {
+            file_put_contents($this->pathToLog, trim($output)."\n", FILE_APPEND);
+        }
+
+        foreach ($prompts as $prompt) {
+            $this->openPrompt($prompt);
+        }
+    }
+
+    /**
+     * Show the question in the log and offer it to the browser.
+     *
+     * @param   array<string, mixed>  $prompt
+     *
+     * @return  void
+     */
+    protected function openPrompt(array $prompt): void
+    {
+        $line = "? " . $prompt["question"];
+
+        if (!empty($prompt["choices"])) {
+            $line .= " [" . implode("/", $prompt["choices"]) . "]";
+        }
+
+        if (($prompt["default"] ?? null) !== null) {
+            $line .= " (default: {$prompt["default"]})";
+        }
+
+        file_put_contents($this->pathToLog, $line."\n", FILE_APPEND);
+
+        $this->pendingPrompt = $prompt;
+        $this->promptChannel->publishPrompt($this->executionRecord->job_uuid, $prompt);
+    }
+
+    /**
+     * Feed the user's answer to the child once it arrives.
+     *
+     * The answer only ever exists in memory and on the child's stdin. The log gets an echo of it,
+     * masked for a secret question - a fixed mask, so not even the length leaks.
+     *
+     * @return  void
+     */
+    protected function deliverAnswer(): void
+    {
+        if ($this->pendingPrompt === null || !$this->process->isRunning()) {
+            return;
+        }
+
+        $answer = $this->promptChannel->pullAnswer($this->executionRecord->job_uuid, $this->pendingPrompt["id"]);
+
+        if ($answer === null) {
+            return;
+        }
+
+        $echo = $this->pendingPrompt["secret"] ? "********" : $answer;
+        file_put_contents($this->pathToLog, "> {$echo}\n", FILE_APPEND);
+
+        $this->promptChannel->clearPrompt($this->executionRecord->job_uuid);
+        $this->pendingPrompt = null;
+
+        $this->stdin->write(PromptProtocol::encodeAnswer($answer));
     }
 
     protected function initializeProcess(): Process
     {
-        $this->process = new Process($this->buildCommandArray(), base_path());
+        $this->promptChannel = app(PromptChannel::class);
+        $this->stdin         = new InputStream();
+
+        // The flag makes the child route its questions over this pipe (RemotisanOutputStyle);
+        // the env is merged onto the inherited one, not replacing it.
+        $this->process = new Process($this->buildCommandArray(), base_path(), [PromptProtocol::ENV_FLAG => "1"]);
         $this->process->setTimeout(null);
+        $this->process->setInput($this->stdin);
         return $this->process;
     }
 

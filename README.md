@@ -191,6 +191,18 @@ The roles **MUST** be matching to the roles you've defined in _Remotisan_ config
 - If `UserPermissions::CommandsExecution = 8`, use `#[RemotisanRoles(['8'])]` in your commands
 - For string roles, use `#[RemotisanRoles(['vault'])]` directly
 
+**A user holds every role they match.** Each `authWith()` whose callable returns true adds its role, and a user may run any command tagged with any of their roles. That lets you put one sensitive command behind a narrow role without taking anything away from the users who also hold a broader role:
+
+```php
+\Remotisan::authWith(UserPermissions::CommandsExecution, fn($request) => $request->user()?->isAllowed(UserPermissions::CommandsExecution));
+\Remotisan::authWith(UserPermissions::SuperAdmin, fn($request) => $request->user()?->isAllowed(UserPermissions::SuperAdmin));
+
+#[RemotisanRoles([UserPermissions::SuperAdmin])]   // only super admins
+class ImportUsersCommand extends Command {}
+```
+
+A super admin who also has `CommandsExecution` sees both the super-admin commands and the `CommandsExecution` ones. `Remotisan::getUserRoles()` returns all matched roles; `getUserGroup()` still returns the first one, for backwards compatibility.
+
 ## User Identifier
 User identifier is used for auditing job executions, implementer can use any parameter they confident with.
 As well, have to implement you custom UserIdentifierGetter in AppServiceProvider
@@ -244,6 +256,48 @@ Two settings tune it, both optional:
 REMOTISAN_MAX_READ_BYTES=1048576   # bytes a single page may read
 REMOTISAN_LINES_PER_CHUNK=200      # lines the viewer asks for per page
 ```
+
+## Interactive commands (live input)
+Commands that ask questions work from the browser, answered live while they run. No change is needed
+in the command:
+
+```php
+$bundle = $this->ask("Paste the bundle");
+$key    = $this->secret("Transfer key");     // asterisks in the browser, masked in the log
+$go     = $this->confirm("Proceed?", false);  // yes / no buttons
+```
+
+Every Laravel question API is covered: `ask`, `secret`, `confirm`, `choice`, `anticipate`, the
+`$this->components->*` prompts and the Laravel Prompts functions (`text()`, `password()`, ...).
+When a command asks, a panel below the log shows the question; the run waits until it is answered.
+Defaults, validation (with retry) and `--no-interaction` behave as they do in a terminal.
+
+How it works: the broker starts the command with `REMOTISAN_INTERACTIVE=1` and a live stdin. In
+that process Remotisan binds its own `OutputStyle`, which writes each question to the broker as a
+marker line and reads the answer from stdin. The broker publishes the question through the cache,
+the browser polls `GET /execute/{uuid}/prompt`, and the answer goes back through
+`POST /execute/{uuid}/input` to the cache, the broker, and the command's stdin.
+
+Secrets:
+- the input is a password field, cleared as soon as it is sent;
+- the answer is stored in the cache encrypted with the app key, for 10 minutes at most, and deleted
+  when the broker reads it;
+- it never reaches the database, the log file (a secret is echoed as `> ********`), the process
+  arguments or the HTTP response;
+- only the user who started the execution, or a super user, may answer.
+
+If your application logs request bodies, exclude `POST {remotisan.url}/execute/*/input` from that
+logging. Non-secret answers are echoed in the log transcript (`> answer`), so ask with `secret()`
+for anything sensitive.
+
+In a multi-instance deployment, prompts and answers need a shared cache store, as kill signals do.
+
+```dotenv
+REMOTISAN_MAX_ANSWER_LENGTH=65536   # longest accepted answer, in characters
+```
+
+A command that reads `STDIN` directly (not through Laravel's question APIs) now blocks waiting for
+input instead of getting an immediate EOF.
 
 ## Instance identifier
 Since the application may run in a multi-instance environment with no direct ssh access to servers, we have to identify instance the remotisan installed at.
